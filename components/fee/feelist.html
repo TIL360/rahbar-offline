@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fee Management - Records</title>
+    <style>
+        :root { --primary: #2c3e50; --bg: #f4f7f6; --white: #ffffff; --danger: #e74c3c; --success: #27ae60; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); padding: 20px; color: #333; margin: 0; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        h2 { color: var(--primary); margin: 0; font-weight: 600; }
+
+        /* Table Responsive Container */
+        .table-container { 
+            background: var(--white); 
+            border-radius: 8px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
+            overflow-x: auto; /* Handles the wide table */
+        }
+
+        table { width: 100%; border-collapse: collapse; min-width: 1100px; text-align: left; }
+        th { background: var(--primary); color: white; padding: 14px 10px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; position: sticky; top: 0; }
+        td { padding: 12px 10px; border-bottom: 1px solid #eee; font-size: 0.85rem; vertical-align: middle; }
+        tr:hover { background: #fcfcfc; }
+
+        /* Status Colors */
+        .txt-bold { font-weight: bold; }
+        .txt-success { color: var(--success); font-weight: bold; }
+        .txt-danger { color: var(--danger); font-weight: bold; }
+        .registration-tag { font-size: 0.7rem; color: #7f8c8d; background: #ecf0f1; padding: 2px 5px; border-radius: 3px; }
+
+        /* Action Buttons */
+        .btn-group { display: flex; gap: 5px; }
+        .btn { border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; transition: 0.2s; font-size: 0.8rem; }
+        .btn-edit { background: #3498db; color: white; }
+        .btn-delete { background: var(--danger); color: white; }
+        .btn-collect { background: var(--success); color: white; font-weight: bold; }
+        .btn:hover { opacity: 0.8; transform: translateY(-1px); }
+
+        .refresh-btn { background: var(--white); border: 1px solid #ddd; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
+     .filter-container {
+        background: #fff;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    .filter-group { display: flex; flex-direction: column; gap: 5px; }
+    .filter-group label { font-size: 12px; color: #666; font-weight: bold; text-transform: uppercase; }
+    .nice-select {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        min-width: 150px;
+        outline: none;
+        transition: border 0.3s;
+    }
+    .nice-select:focus { border-color: #3498db; }
+    .btn-filter { background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; align-self: flex-end; }
+    .btn-filter:hover { background: #2980b9; }
+ /* Filter Bar Container */
+.filter-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: white;
+    padding: 15px 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    gap: 15px;
+}
+
+/* Select Inputs */
+select {
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    outline: none;
+    font-size: 14px;
+    min-width: 120px;
+}
+
+/* Base Button Style */
+.btn-action {
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: white;
+}
+
+/* 🔍 Filter Button - Blue Gradient */
+.btn-filter {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+}
+.btn-filter:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4); }
+
+/* 🖨️ Print All Button - Green Gradient */
+.btn-print-all {
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+    font-size: 15px;
+}
+.btn-print-all:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(39, 174, 96, 0.4); }
+
+/* 📄 Table Invoice Button - Orange Gradient */
+.btn-invoice {
+    background: linear-gradient(135deg, #e67e22, #d35400);
+    padding: 6px 12px;
+    font-size: 12px;
+    border: none;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+}
+.btn-invoice:hover { filter: brightness(1.1); }
+
+/* Info Badge */
+.info-badge {
+    background: #f8f9fa;
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #7f8c8d;
+    border: 1px solid #eee;
+}
+
+ </style>
+</head>
+<body>
+
+                <a href="../dashboard.html" class="back-link">← Back to Main Dashboard</a>
+    <div class="header">
+        <h2>Fee Records</h2>
+        <button class="refresh-btn" onclick="loadFeeData()">Refresh List</button>
+    </div>
+
+    <div class="filter-container">
+    <div class="filter-group">
+        <label>Month</label>
+        <select id="filterMonth" class="nice-select"><option value="">All Months</option></select>
+    </div>
+    <div class="filter-group">
+        <label>Year</label>
+        <select id="filterYear" class="nice-select"><option value="">All Years</option></select>
+    </div>
+    <div class="filter-group">
+        <label>Class</label>
+        <select id="filterClass" class="nice-select"><option value="">All Classes</option></select>
+    </div>
+    <button class="btn-filter" onclick="loadFeeData()">Apply Filters</button>
+    
+    
+    <!-- Make sure this ID is exactly 'filterInfoDisplay' -->
+    <div id="filterInfoDisplay" style="margin-left: 20px; font-weight: bold; color: #2c3e50; font-size: 1.1em;"></div>
+    <button class="btn-action btn-print-all" onclick="viewBulkInvoices()">
+           <span>🖨️ Print All (Filtered)</span>
+       </button>
+</div>
+<div class="search-container no-print" style="margin-bottom: 15px;">
+    <input type="text" id="feeSearch" onkeyup="filterFeeTable()" 
+           placeholder="🔍 Search by Inv No, Reg No, or Name..." 
+           style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
+</div>
+
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Inv #</th>
+                    <th>No</th>
+                    <th>Student Name</th>
+                    <th>Tuition</th>
+                    <th>Adm</th>
+                    <th>Exam</th>
+                    <th>Lab</th>
+                    <th>Sec.</th>
+                    <th>Misc</th>
+                    <th>Total</th>
+                    <th>Collected</th>
+                    <th>Bal</th>
+                    <th>Arrears</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="feeTableBody">
+                <!-- Data will be injected here -->
+            </tbody>
+        </table>
+    </div>
+
+<script>
+    // 1. GLOBAL VARIABLE: Stores the current filtered list for the bulk button
+    let currentTableData = []; 
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        await populateFilters();
+        await loadFeeData(); // Loads initial data
+    });
+
+    async function populateFilters() {
+        const data = await window.api.getFilterData();
+        const monthSelect = document.getElementById('filterMonth');
+        const yearSelect = document.getElementById('filterYear');
+        const classSelect = document.getElementById('filterClass');
+
+        data.months.forEach(m => monthSelect.innerHTML += `<option value="${m.invoice_month}">${m.invoice_month}</option>`);
+        data.years.forEach(y => yearSelect.innerHTML += `<option value="${y.invoice_year}">${y.invoice_year}</option>`);
+        data.classes.forEach(c => classSelect.innerHTML += `<option value="${c.class_name}">${c.class_name}</option>`);
+    }
+
+    async function loadFeeData() {
+        const month = document.getElementById('filterMonth').value;
+        const year = document.getElementById('filterYear').value;
+        const className = document.getElementById('filterClass').value;
+
+        const filters = { month, year, className };
+        
+        // Save the result to our Global Variable
+        currentTableData = await window.api.getFeeRecordsFilters(filters);
+
+        // Update UI info
+        const infoDiv = document.getElementById('filterInfoDisplay');
+        if (month || year || className) {
+            infoDiv.innerHTML = `
+                <span style="color: #3498db;">${className || 'All Classes'}</span> | 
+                <span style="color: #e67e22;">${month || ''} ${year || ''}</span> 
+                <span style="font-size: 0.8em; color: #7f8c8d;">(${currentTableData.length} Records)</span>`;
+        } else {
+            infoDiv.innerHTML = "All Records";
+        }
+
+        renderTable(currentTableData);
+    }
+
+    function renderTable(rows) {
+        const tableBody = document.getElementById('feeTableBody');
+        tableBody.innerHTML = '';
+        const format = (val) => val ? `Rs. ${val.toLocaleString()}` : 'Rs. 0';
+
+        rows.forEach(row => {
+            tableBody.innerHTML += `
+                <tr>
+                    <td><small>${row.id}</small></td>
+                    <td>${row.registration_no}</td>
+                    <td><strong>${row.student_name}</strong></td>
+                    <td>${format(row.monthly_fee)}</td>
+                    <td>${format(row.adm_fee)}</td>
+                    <td>${format(row.exam_fee)}</td>
+                    <td>${format(row.lab_fee)}</td>
+                    <td>${row.section || '-'}</td>
+                    <td>${format(row.misc_fee)}</td>
+                    <td class="txt-bold">${format(row.total_fee)}</td>
+                    <td class="txt-success">${format(row.collection)}</td>
+                    <td class="${row.balance > 0 ? 'txt-danger' : ''}">${format(row.balance)}</td>
+                    <td class="txt-danger">${format(row.previous_arrears)}</td>
+                    <td>
+                        <div class="btn-group">
+                            <button class="btn btn-pay" onclick="collectFee(${row.id})">💰 Collect</button>
+                            <button class="btn btn-invoice" onclick="viewInvoice(${row.id})">📄 Invoice</button>
+                            <button class="btn btn-delete" onclick="deleteFee(${row.id})">✖</button>
+                        </div>
+                    </td>
+                </tr>`;
+        });
+    }
+
+    // --- NAVIGATION ACTIONS ---
+
+    // Standardized function for BOTH single and bulk
+    function viewInvoice(id) {
+        localStorage.setItem('print_ids', id); // Save single ID
+        window.api.changePage(`components/fee/invoice.html?mode=single`);
+    }
+
+    function viewBulkInvoices() {
+        if (!currentTableData || currentTableData.length === 0) {
+            alert("No records found to print. Please apply filters first.");
+            return;
+        }
+
+        // Map all IDs into a comma-separated string
+        const ids = currentTableData.map(row => row.id).join(',');
+        localStorage.setItem('print_ids', ids); // Save all IDs
+        window.api.changePage(`components/fee/invoice.html?mode=bulk`);
+    }
+
+    // --- OTHER ACTIONS ---
+    function collectFee(id) {
+        localStorage.setItem('collectFeeId', id);
+        localStorage.setItem('feeMode', 'collect');
+        window.api.changePage('components/fee/feecollection.html');
+    }
+
+    async function deleteFee(id) {
+        if(confirm('Delete this record?')) {
+            await window.api.deleteFee(id); 
+            await loadFeeData(); // Refresh list instead of reloading page
+        }
+    }
+//search record
+function filterStudentTable() {
+    const searchTerm = document.getElementById('studentSearch').value.toLowerCase();
+    const rows = document.querySelectorAll('#studentTableBody tr');
+
+    rows.forEach(row => {
+        // Assuming Column 1 is Reg No and Column 2 is Name
+        const regNo = row.cells[0].textContent.toLowerCase();
+        const name = row.cells[1].textContent.toLowerCase();
+
+        if (regNo.includes(searchTerm) || name.includes(searchTerm)) {
+            row.style.display = "";
+        } else {
+            row.style.display = "none";
+        }
+    });
+}
+
+function filterFeeTable() {
+    // 1. Capture the search input and force it to lowercase
+    const input = document.getElementById('feeSearch');
+    const filter = input.value.toLowerCase().trim();
+    
+    // 2. Target the specific table body rows
+    const tableBody = document.getElementById('feeTableBody');
+    const rows = tableBody.getElementsByTagName('tr');
+
+    for (let i = 0; i < rows.length; i++) {
+        // 3. Get text content specifically (textContent is cleaner than innerHTML)
+        const rowText = rows[i].textContent || rows[i].innerText;
+        
+        // 4. Case-insensitive search across the entire row
+        if (rowText.toLowerCase().includes(filter)) {
+            rows[i].style.display = ""; // Show matching row
+        } else {
+            rows[i].style.display = "none"; // Hide non-matching row
+        }
+    }
+}
+
+</script>
+
+
+
+</body>
+</html>

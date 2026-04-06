@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: safe-file: https://ui-avatars.com;" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Student Management List</title>
+<link rel="stylesheet" href="../../assets/css/all.min.css" />
+<style>
+  :root {
+    --primary: #4f46e5;
+    --bg-gray: #f8fafc;
+    --border: #e2e8f0;
+  }
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: var(--bg-gray);
+    margin: 0;
+    padding: 20px;
+  }
+  .page-container {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .top-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: white;
+    padding: 15px 25px;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+  }
+  .action-card {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+  .search-container {
+    position: relative;
+    margin-bottom: 15px;
+  }
+  .search-container input {
+    width: 100%;
+    padding: 12px 40px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-sizing: border-box;
+    outline: none;
+  }
+  .search-container i {
+    position: absolute;
+    left: 15px;
+    top: 15px;
+    color: #94a3b8;
+  }
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .btn {
+    padding: 10px 15px;
+    border-radius: 6px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: 0.2s;
+  }
+  .btn:hover {
+    opacity: 0.9;
+  }
+  .btn-add { background: var(--primary); color: white; }
+  .btn-print { background: #6366f1; color: white; }
+  .btn-report { background: #4f46e5; color: white; }
+  .btn-paid { background: #10b981; color: white; }
+  .btn-partial { background: #f59e0b; color: white; }
+  .btn-unpaid { background: #ef4444; color: white; }
+
+  .table-container {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  th {
+    background: #f8fafc;
+    padding: 12px;
+    text-align: left;
+    font-size: 11px;
+    color: #64748b;
+    text-transform: uppercase;
+    border-bottom: 2px solid var(--border);
+  }
+  td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 14px;
+  }
+  .avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid #ddd;
+  }
+  .action-btn {
+    padding: 6px 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    margin-right: 2px;
+  }
+
+  /* Modal styles */
+  .modal {
+    display: none; /* Hidden by default */
+    position: fixed;
+    z-index: 999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5);
+  }
+  .modal-content {
+    background-color: #fff;
+    margin: 50px auto;
+    padding: 20px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 800px;
+    position: relative;
+  }
+  /* Centered heading */
+  #reportArea h3 {
+    margin: 0;
+    color: var(--primary);
+    text-align: center;
+  }
+  /* Close button styling & position */
+  .close-modal {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    color: #aaa;
+    z-index: 10;
+  }
+  .close-modal:hover {
+    color: #000;
+  }
+
+  /* Header inside modal, centered */
+  .report-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  /* When printing, hide "Print Report" button */
+  @media print {
+    #reportArea .print-btn-container {
+      display: none;
+    }
+  }
+  /* Optional: style for print button container to hide during print */
+  .print-btn-container {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 10px;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-container">
+  <div class="top-nav">
+    <button class="btn" onclick="window.api.changePage('components/dashboard.html')">Dashboard</button>
+    <button class="btn btn-add" onclick="window.api.changePage('components/student/stu_personal_info.html')">Add New Student</button>
+  </div>
+
+  <div class="action-card">
+    <div class="search-container">
+      <i class="fas fa-search"></i>
+      <input type="text" id="studentSearch" placeholder="Search by Registration No or Name..." onkeyup="filterTable()" />
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-print" onclick="generateBulkInvoices()"><i class="fas fa-print"></i> Generate Bulk Invoices</button>
+      <div style="flex-grow:1"></div>
+      <input type="date" id="reportDate" style="padding:8px; border:1px solid #ccc; border-radius:4px" />
+      <!-- For Date Report -->
+      <button class="btn btn-report" onclick="generateDateReport()">Date Report</button>
+      <!-- For Full Paid List -->
+      <button class="btn btn-paid" onclick="generateStatusReport('paid')">Full Paid List</button>
+      <!-- For Partial Paid List -->
+      <button class="btn btn-partial" onclick="generateStatusReport('partial')">Partial Paid List</button>
+      <!-- For Unpaid List -->
+      <button class="btn btn-unpaid" onclick="generateStatusReport('unpaid')">Unpaid List</button>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>PHOTO</th><th>REG NO</th><th>NAME</th><th>FATHER NAME</th><th>CLASS</th>
+          <th>DOB</th><th>MOBILE</th><th>WHATSAPP</th><th>FEE</th><th>ACTIONS</th>
+        </tr>
+      </thead>
+      <tbody id="studentTableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Report Modal -->
+<div id="reportModal" class="modal">
+  <div class="modal-content" id="reportArea">
+    <!-- Close button -->
+    <span class="close-modal print-btn-container" onclick="closeModal()">&times;</span>
+    <!-- Heading -->
+    <h3 id="reportTitle">Report</h3>
+    <!-- Buttons for printing, hidden during print -->
+    <div class="print-btn-container">
+      <button class="btn btn-print print-btn" onclick="window.print()"><i class="fas fa-print"></i> Print Report</button>
+    </div>
+    <!-- Table with data -->
+    <table>
+      <thead>
+        <tr>
+          <th>Reg No</th>
+          <th>Name</th>
+          <th>Class</th>
+          <th>Total Fee</th>
+          <th>Paid</th>
+          <th>Balance</th>
+        </tr>
+      </thead>
+      <tbody id="modalTableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  // Utility function to format date as e.g., "5 Apr 2026"
+  function formatDate(dateStr) {
+    const date = new Date(dateStr);
+    if (isNaN(date)) return dateStr; // fallback
+    const options = { day: 'numeric', month: 'short', year: 'numeric' };
+    return date.toLocaleDateString(undefined, options);
+  }
+
+  // Load students and images
+async function loadStudents() {
+  try {
+    const students = await window.api.getStudents();
+    const tbody = document.getElementById('studentTableBody');
+    tbody.innerHTML = '';
+    for (const s of students) {
+      const imgSrc = s.picture_path ? await window.api.getImageUrl(s.picture_path) : `https://ui-avatars.com/api/?name=${encodeURIComponent(s.student_name)}&background=random`;
+      tbody.innerHTML += `
+        <tr>
+          <td>
+            <img src="${imgSrc}" class="avatar" onerror="this.src='../../assets/img/default-avatar.png'" />
+          </td>
+          <td><strong>${s.registration_no}</strong></td>
+          <td>${s.student_name}</td>
+          <td>${s.father_name}</td>
+          <td>${s.current_class}</td>
+          <td>${formatDate(s.dob)}</td>
+          <td>${s.mobile}</td>
+          <td>${s.whatsapp}</td>
+          <td>${s.monthly_fee}</td>
+          <td style="display:flex; gap:4px;">
+            <button class="action-btn" title="View History" onclick="viewHistory(${s.id})">👁️</button>
+            <button class="action-btn" title="Edit Profile" onclick="editStudent(${s.id})">✏️</button>
+            <button class="action-btn" title="Generate Fee" onclick="generateFee(${s.id})">💰</button>
+            <button class="action-btn" style="color:red" title="Delete" onclick="deleteStudent(${s.id})">🗑️</button>
+          </td>
+        </tr>`;
+    }
+  } catch (err) {
+    console.error("Error loading students:", err);
+  }
+}
+
+async function generateBulkInvoices() {
+  try {
+    const result = await window.api.generateBulkFees();
+    if (result.success) {
+      alert(`Successfully generated ${result.count} invoices for the current month.`);
+    } else {
+      alert(result.message);
+    }
+  } catch (err) {
+    console.error("Bulk Generation Error:", err);
+    alert("Failed to generate bulk invoices.");
+  }
+}
+
+async function generateDateReport() {
+  const selectedDate = document.getElementById('reportDate').value;
+  if (!selectedDate) {
+    alert("Please select a date first.");
+    return;
+  }
+  try {
+    const reportData = await window.api.getDateWiseReport(selectedDate);
+    renderModalTable(reportData, `COLLECTION REPORT: ${formatDate(selectedDate)}`);
+  } catch (err) {
+    console.error("Date Report Error:", err);
+    alert("Error fetching date report.");
+  }
+}
+
+// --- MODAL & REPORT LOGIC ---
+
+function openModal(title) {
+  document.getElementById('reportTitle').innerText = title;
+  document.getElementById('reportArea').style.display = 'block';
+  document.getElementById('reportModal').style.display = "block";
+}
+
+function closeModal() {
+  document.getElementById('reportModal').style.display = "none";
+  // Optional: clear table data
+  document.getElementById('modalTableBody').innerHTML = '';
+}
+
+// Show report by status ('paid', 'partial', 'unpaid')
+async function generateStatusReport(type) {
+  try {
+    const data = await window.api.getStatusReport(type);
+    renderModalTable(data, `${type.toUpperCase()} FEE REPORT`);
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+// Show report by date (redundant, already defined above) - keeping for completeness
+async function generateDateReport() {
+  const date = document.getElementById('reportDate').value;
+  if (!date) {
+    alert("Please select a date first.");
+    return;
+  }
+  try {
+    const data = await window.api.getDateWiseReport(date);
+    renderModalTable(data, `COLLECTION REPORT: ${formatDate(date)}`);
+  } catch (err) {
+    alert("Error fetching date report.");
+  }
+}
+
+// Render data into modal table
+function renderModalTable(data, title) {
+  const tbody = document.getElementById('modalTableBody');
+  tbody.innerHTML = '';
+  if (!data || data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No records found.</td></tr>';
+    return;
+  }
+
+  // For each record, display fee details with correct formatting
+  data.forEach(r => {
+    // Expecting r to have properties: registration_no, student_name, current_class, total_fee, collection, balance
+    tbody.innerHTML += `
+      <tr>
+        <td>${r.registration_no}</td>
+        <td>${r.student_name}</td>
+        <td>${r.current_class}</td>
+        <td>${(r.total_fee || r.monthly_fee) ? `Rs. ${Number(r.total_fee || r.monthly_fee).toLocaleString()}` : 'Rs. 0'}</td>
+        <td>${r.collection !== undefined ? `Rs. ${Number(r.collection).toLocaleString()}` : 'Rs. 0'}</td>
+        <td>${r.balance !== undefined ? `Rs. ${Number(r.balance).toLocaleString()}` : 'Rs. 0'}</td>
+      </tr>`;
+  });
+  openModal(title);
+}
+
+// Item actions
+function editStudent(id) {
+  window.api.changePage(`components/student/stu_personal_info.html?id=${id}`);
+}
+function viewHistory(id) {
+  window.api.changePage(`components/fee/fee_detail_by_id.html?id=${id}`);
+}
+async function generateFee(id) {
+  try {
+    await window.api.generateStudentFee(id);
+    alert("Monthly fee generated successfully!");
+    window.api.changePage(`components/fee/feelist.html?id=${id}`);
+  } catch (err) {
+    alert(err.message);
+  }
+}
+async function deleteStudent(id) {
+  if (confirm(' Are you sure you want to delete this student? Warning! Deleting this record will also remove all associated Fee and Result records for this student')) {
+    await window.api.deleteStudent(id);
+    loadStudents();
+  }
+}
+
+// Search filter
+function filterTable() {
+  const term = document.getElementById('studentSearch').value.toLowerCase();
+  const rows = document.querySelectorAll('#studentTableBody tr');
+  rows.forEach(row => {
+    const regNo = row.cells[1]?.textContent.toLowerCase() || '';
+    const name = row.cells[2]?.textContent.toLowerCase() || '';
+    row.style.display = (regNo.includes(term) || name.includes(term)) ? "" : "none";
+  });
+}
+
+// Close modal when clicking outside content
+window.onclick = function(event) {
+  const modal = document.getElementById('reportModal');
+  if (event.target == modal) {
+    closeModal();
+  }
+};
+
+// Initial load
+loadStudents();
+</script>
+
+</body>
+</html>

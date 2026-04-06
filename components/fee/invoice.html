@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Fee Invoices - Professional Layout</title>
+    <style>
+        /* Base Styling */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #f0f0f0; color: #333; }
+        
+        /* Landscape Page Wrapper: One wrapper per student */
+        .page-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr; /* 3 Copies side-by-side */
+            gap: 12px;
+            width: 297mm; 
+            min-height: 200mm;
+            margin: 15px auto;
+            background: white;
+            padding: 10px;
+            box-sizing: border-box;
+            page-break-after: always;
+            border: 1px solid #ccc;
+        }
+
+        .copy-section {
+            border: 1.5px dashed #555;
+            padding: 10px;
+            font-size: 10.5px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* Header Styling */
+        .header { text-align: center; border-bottom: 2px solid #2c3e50; margin-bottom: 8px; padding-bottom: 5px; }
+        .school-name { font-size: 15px; font-weight: bold; margin: 0; text-transform: uppercase; }
+        .copy-label { background: #eee; padding: 2px 6px; font-weight: bold; float: right; border-radius: 3px; font-size: 9px; }
+        
+        .info-table, .fee-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        .info-table td { padding: 2px 0; }
+        .fee-table th, .fee-table td { border: 1px solid #ddd; padding: 4px; text-align: left; }
+        .fee-table th { background: #f9f9f9; }
+        
+        .total-row { font-weight: bold; background: #f2f2f2; }
+        .net-payable { background: #2c3e50 !important; color: white !important; font-weight: bold; }
+        .fine-row { color: #c0392b; font-style: italic; }
+        
+        .footer { margin-top: auto; display: flex; justify-content: space-between; padding-top: 15px; }
+        .sig-line { border-top: 1.2px solid #000; width: 75px; text-align: center; font-size: 9px; padding-top: 3px; }
+
+        /* Print Specifics */
+        @media print {
+            body { background: white; }
+            .no-print { display: none; }
+            .page-wrapper { margin: 0; border: none; padding: 5mm; }
+            @page { size: landscape; margin: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="no-print" style="text-align:center; padding: 15px; background: #2c3e50; color:white;">
+        <button onclick="window.print()" style="padding: 10px 25px; cursor: pointer; font-weight: bold; border-radius: 5px; border:none; background:#27ae60; color:white;">🖨️ Click to Print Invoices</button>
+        <p id="counterNote" style="margin: 8px 0 0 0; font-size: 13px; opacity: 0.9;"></p><br/>
+        <a href="../fee/feelist.html" class="back-link" style="background-color: #eee;">← Fee List</a>
+    </div>
+
+    <div id="invoiceContainer">
+        <!-- Student Pages will be injected here -->
+    </div>
+
+    <script>
+    async function init() {
+        const idString = localStorage.getItem('print_ids');
+        if (!idString) {
+            document.getElementById('invoiceContainer').innerHTML = "<h2 style='text-align:center; padding:50px;'>No Data Found.</h2>";
+            return;
+        }
+
+        const ids = idString.split(',');
+        const container = document.getElementById('invoiceContainer');
+        container.innerHTML = ''; // Reset
+        document.getElementById('counterNote').innerText = `Total Students in Batch: ${ids.length}`;
+
+        for (let id of ids) {
+            try {
+                const data = await window.api.getFeeRecordById(id);
+                if (data) renderStudentPage(data, container);
+            } catch (err) {
+                console.error("Error loading record:", id, err);
+            }
+        }
+    }
+
+    function renderStudentPage(data, container) {
+        const copies = ['Bank Copy', 'Office Copy', 'Student Copy'];
+        const page = document.createElement('div');
+        page.className = 'page-wrapper';
+
+        // Calculations
+        const monthly = data.monthly_fee || 0;
+        const admission = data.adm_fee || 0;
+        const exam = data.exam_fee || 0;
+        const misc = data.misc_fee || 0;
+        const lab = data.lab_fee || 0;
+        const arrears = data.previous_arrears || 0;
+        
+        const currentTotal = monthly + admission + exam + misc + lab;
+        const netPayable = currentTotal + arrears;
+        const fineAmount = 200; // Set your late fee amount here
+        const netAfterDue = netPayable + fineAmount;
+
+        // Date Logic
+        const dueDate = `10th ${data.invoice_month} ${data.invoice_year}`;
+
+        page.innerHTML = copies.map(title => `
+            <div class="copy-section">
+                <span class="copy-label">${title}</span>
+                <div class="header">
+                    <p class="school-name">YOUR SCHOOL NAME</p>
+                    <p style="margin:2px; font-size:9px;">Address Line 1, City Name | Phone: 000-0000000</p>
+                </div>
+
+                <table class="info-table">
+                    <tr><td><strong>Inv #:</strong> ${data.id}</td><td style="text-align:right"><strong>Date:</strong> ${data.invoice_month} ${data.invoice_year}</td></tr>
+                    <tr><td colspan="2"><strong>Student:</strong> ${data.student_name}</td></tr>
+                    <tr><td><strong>Reg:</strong> ${data.registration_no}</td><td><strong>Class:</strong> ${data.current_class} (${data.section || 'A'})</td></tr>
+                </table>
+
+                <table class="fee-table">
+                    <thead>
+                        <tr><th>Description</th><th>Amount</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Monthly Tuition Fee</td><td>${monthly.toLocaleString()}</td></tr>
+                        <tr><td>Admission Fee</td><td>${admission.toLocaleString()}</td></tr>
+                        <tr><td>Examination Fee</td><td>${exam.toLocaleString()}</td></tr>
+                        <tr><td>Lab Charges</td><td>${lab.toLocaleString()}</td></tr>
+                        <tr><td>Miscellaneous Fee</td><td>${misc.toLocaleString()}</td></tr>
+                        <tr class="total-row"><td>Current Month Total</td><td>${currentTotal.toLocaleString()}</td></tr>
+                        <tr><td>Previous Arrears</td><td>${arrears.toLocaleString()}</td></tr>
+                        
+                        <tr class="net-payable">
+                            <td>NET PAYABLE (By ${dueDate})</td>
+                            <td>Rs. ${netPayable.toLocaleString()}</td>
+                        </tr>
+
+                        <tr class="fine-row">
+                            <td>Late Fine (After 10th)</td>
+                            <td>${fineAmount.toLocaleString()}</td>
+                        </tr>
+                        <tr class="total-row">
+                            <td>NET AFTER DUE DATE</td>
+                            <td>Rs. ${netAfterDue.toLocaleString()}</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div style="margin-top:10px; font-size:9px; border:1px solid #ccc; padding:4px;">
+                    <strong>Note:</strong> Please pay your dues before the 10th to avoid late fines.
+                </div>
+
+                <div class="footer">
+                    <div class="sig-line">Parent/Bank</div>
+                    <div class="sig-line">Cashier/Principal</div>
+                </div>
+            </div>
+        `).join('');
+
+        container.appendChild(page);
+    }
+
+    window.onload = init;
+</script>
+</body>
+</html>

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Salary Records</title>
+    <style>
+        :root { --primary: #2c3e50; --accent: #3498db; --bg: #f4f7f6; --white: #ffffff; --success: #27ae60; --danger: #e74c3c; --warning: #f39c12; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #333; }
+        
+        .back-link { text-decoration: none; color: var(--accent); font-weight: bold; margin-bottom: 15px; display: inline-block; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        
+        /* Filter Section */
+        .filter-container { background: var(--white); padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; gap: 15px; align-items: center; margin-bottom: 20px; }
+        .filter-group { display: flex; flex-direction: column; gap: 5px; }
+        .filter-group label { font-size: 11px; color: #666; font-weight: bold; text-transform: uppercase; }
+        select, input { padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-width: 120px; }
+        
+        .btn-filter { background: var(--accent); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; align-self: flex-end; }
+
+        /* Table Styling */
+        .table-card { background: var(--white); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th { background: var(--primary); color: white; padding: 12px; font-size: 0.8rem; text-transform: uppercase; }
+        td { padding: 12px; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+        
+        .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
+        .paid { background: #d4edda; color: #155724; }
+        .unpaid { background: #fff3cd; color: #856404; }
+
+        .btn-pay { background: var(--success); color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-pay:hover { opacity: 0.9; }
+    </style>
+</head>
+<body>
+
+    <a href="../dashboard.html" class="back-link">← Back to Dashboard</a>
+    
+    <div class="header">
+        <h2>Staff Salary Records</h2>
+        <div id="salarySummary" style="font-weight: bold; color: var(--primary);"></div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-container">
+        <div class="filter-group">
+            <label>Month</label>
+            <select id="filterMonth">
+                <option value="January">January</option><option value="February">February</option>
+                <option value="March">March</option><option value="April">April</option>
+                <option value="May">May</option><option value="June">June</option>
+                <option value="July">July</option><option value="August">August</option>
+                <option value="September">September</option><option value="October">October</option>
+                <option value="November">November</option><option value="December">December</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Year</label>
+            <input type="number" id="filterYear" value="2026">
+        </div>
+        <button class="btn-filter" onclick="loadSalaryData()">Apply Filters</button>
+    </div>
+
+    <!-- Table -->
+    <div class="table-card">
+        <table>
+            <thead>
+                <tr>
+                   <th>Staff Name</th>
+<th>Basic Salary</th>
+<th>Auth Leaves</th>
+<th>Availed</th>
+<th>Total Salary</th>
+<th>Status</th>
+<th>Action</th>
+
+                </tr>
+            </thead>
+            <tbody id="salaryTableBody">
+                <!-- Records will be loaded here -->
+            </tbody>
+        </table>
+    </div>
+
+<script>
+    // 1. GLOBAL VARIABLE: Defined outside functions so everyone can access it
+    let records = []; 
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        document.getElementById('filterMonth').value = months[new Date().getMonth()];
+        document.getElementById('filterYear').value = new Date().getFullYear();
+        loadSalaryData();
+    });
+
+    async function loadSalaryData() {
+        const month = document.getElementById('filterMonth').value;
+        const year = document.getElementById('filterYear').value;
+        
+        // Update the global variable
+        records = await window.api.getSalaries(month, year);
+        
+        const tableBody = document.getElementById('salaryTableBody');
+        tableBody.innerHTML = '';
+        let totalPayableSum = 0;
+
+        records.forEach(r => {
+            const isUnpaid = r.status === 'Unpaid';
+            
+            // --- CALCULATION LOGIC ---
+            const dailyRate = r.salary / 30;
+            const extraLeaves = Math.max(0, (r.availed_leaves || 0) - (r.auth_leaves || 0));
+            const deduction = extraLeaves * dailyRate;
+
+            // Adjusted Basic Salary (e.g., 4000 - 133 = 3867)
+            const adjustedSalary = r.salary - deduction; 
+            
+            // Final Total (Adjusted Basic + Allowance)
+            const finalTotal = adjustedSalary + (r.allowance || 0);
+            
+            totalPayableSum += finalTotal;
+
+            tableBody.innerHTML += `
+            <tr>
+                <td><strong>${r.name}</strong></td>
+                <td>Rs. ${Math.round(adjustedSalary).toLocaleString()}</td> 
+                <td>${r.auth_leaves || 0}</td>
+                <td>
+                    <div id="display-group-${r.id}">
+                        <span id="val-${r.id}">${r.availed_leaves || 0}</span> 
+                        ${isUnpaid ? `<button onclick="showEdit(${r.id})" style="border:none; background:none; cursor:pointer;">✏️</button>` : ''}
+                    </div>
+                    <div id="edit-group-${r.id}" style="display:none;">
+                        <input type="number" id="input-${r.id}" value="${r.availed_leaves || 0}" style="width:50px; padding:2px;">
+                        <button onclick="saveLeaves(${r.id})" style="background:var(--success); color:white; border:none; padding:2px 5px; border-radius:3px; cursor:pointer;">ok</button>
+                    </div>
+                </td>
+                <td style="font-weight:bold; color: ${deduction > 0 ? 'var(--danger)' : 'inherit'}">
+                    Rs. ${Math.round(finalTotal).toLocaleString()}
+                    ${deduction > 0 ? `<br><small style="color:var(--danger); font-weight:normal;">(Ded: Rs. ${Math.round(deduction)})</small>` : ''}
+                </td>
+                <td><span class="status-badge ${r.status.toLowerCase()}">${r.status}</span></td>
+                <td>
+                    ${isUnpaid ? `<button class="btn-pay" onclick="markAsPaid(${r.id})">💰 Pay Now</button>` : `✅ Paid`}
+                </td>
+            </tr>`;
+        });
+
+        document.getElementById('salarySummary').innerText = `Total Payable: Rs. ${Math.round(totalPayableSum).toLocaleString()}`;
+    }
+
+    function showEdit(id) {
+        document.getElementById(`display-group-${id}`).style.display = 'none';
+        document.getElementById(`edit-group-${id}`).style.display = 'block';
+        document.getElementById(`input-${id}`).focus();
+    }
+
+    async function saveLeaves(id) {
+        const newVal = document.getElementById(`input-${id}`).value;
+        const success = await window.api.updateAvailedLeaves(id, parseFloat(newVal));
+        if (success) {
+            loadSalaryData(); 
+        } else {
+            alert("Error: Update failed. Record may already be Paid.");
+        }
+    }
+
+    async function markAsPaid(id) {
+        // Find the specific staff record from the global array
+        const row = records.find(r => r.id === id);
+        
+        if (!row) {
+            alert("Error: Record not found.");
+            return;
+        }
+
+        // Calculate the final basic salary to save in DB
+        const dailyRate = row.salary / 30;
+        const extraLeaves = Math.max(0, (row.availed_leaves || 0) - (row.auth_leaves || 0));
+        const deduction = extraLeaves * dailyRate;
+        const finalSalaryToStore = Math.round(row.salary - deduction);
+
+        if(confirm(`Confirm payment for ${row.name}?\nFinal Basic Salary: Rs. ${finalSalaryToStore}`)) {
+            // PASSING: ID, Status, and the NEW Salary
+            const success = await window.api.updateSalaryStatus(id, 'Paid', finalSalaryToStore);
+            
+            if (success) {
+                loadSalaryData(); 
+            } else {
+                alert("Payment failed. Please check the main process console.");
+            }
+        }
+    }
+</script>
+
+
+
+</body>
+</html>

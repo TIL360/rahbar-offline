@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Student Registration</title>
+    <style>
+        :root { --primary: #28a745; --bg: #f4f4f4; --text: #333; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 10px; background-color: var(--bg); color: var(--text); overflow-x: hidden; }
+        .container { max-width: 98%; margin: auto; background: #fff; padding: 15px 25px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h2 { margin: 0 0 10px 0; color: #444; border-bottom: 2px solid #eee; padding-bottom: 5px; font-size: 1.4rem; }
+        .section-title { background: #f8f9fa; padding: 4px 10px; display: block; font-weight: bold; color: #4f46e5; border-left: 4px solid #4f46e5; margin: 8px 0 10px 0; font-size: 0.9rem; }
+        .form-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px 15px; }
+        .form-group { margin-bottom: 5px; }
+        .span-2 { grid-column: span 2; }
+        label { display: block; margin-bottom: 2px; font-weight: bold; font-size: 0.8rem; color: #555; }
+        input, select, textarea { width: 100%; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 0.85rem; }
+        .submit-btn { width: 300px; padding: 10px; background: var(--primary); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1rem; font-weight: bold; margin: 15px 0 0 auto; display: block; }
+        .submit-btn:hover { background: #218838; }
+        .btn-add { background: var(--primary); color: white; padding: 5px 15px; border: none; border-radius: 4px; cursor: pointer; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button class="btn btn-add" onclick="window.api.changePage('components/student/student_list.html')">Back to List</button>
+        <h2 id="formTitle">New Student Admission</h2>
+        
+        <form id="studentForm">
+            <!-- Section 1: Personal -->
+            <span class="section-title">1. Personal Information</span>
+            <div class="form-grid">
+                <div class="form-group"><label>Reg No (Unique)</label><input type="text" id="regNo" required></div>
+                <div class="form-group"><label>Roll No</label><input type="text" id="rollNo" required></div>
+                <div class="form-group"><label>Student Name</label><input type="text" id="studentName" required></div>
+                <div class="form-group"><label>Student Name (Urdu)</label><input type="text" id="studentNameUrdu"></div>
+                <div class="form-group"><label>Father's Name</label><input type="text" id="fatherName" required></div>
+                <div class="form-group"><label>Date of Birth</label><input type="date" id="dob" required></div>
+                <div class="form-group"><label>B-Form / CNIC</label><input type="text" id="bForm" required></div>
+                <div class="form-group"><label>Student Picture</label><input type="file" id="picture" accept="image/*"></div>
+            </div>
+
+            <!-- Section 2: Academic -->
+            <span class="section-title">2. Academic Details</span>
+            <div class="form-grid">
+                <div class="form-group"><label>Admission Class</label><select id="admClass" required><option value="">Loading...</option></select></div>
+                <div class="form-group"><label>Current Study Class</label><select id="studyClass" required><option value="">Loading...</option></select></div>
+                <div class="form-group"><label>Section</label><input type="text" id="section"></div>
+                <div class="form-group"><label>Date of Admission</label><input type="date" id="admDate"></div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="status">
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Section 3: Contact & Records -->
+            <span class="section-title">3. Contact & Records</span>
+            <div class="form-grid">
+                <div class="form-group"><label>Mobile Number</label><input type="tel" id="mobile" placeholder="03xx-xxxxxxx"></div>
+                <div class="form-group"><label>WhatsApp</label><input type="tel" id="whatsapp" placeholder="03xx-xxxxxxx"></div>
+                <div class="form-group"><label>Monthly Fee</label><input type="number" id="monthlyFee"></div>
+                <div class="form-group"><label>Character Remarks</label><input type="text" id="character"></div>
+                <div class="form-group span-2"><label>Home Address</label><textarea id="address" rows="1"></textarea></div>
+            </div>
+
+            <button type="submit" class="submit-btn" id="submitBtn">Save Complete Student Record</button>
+        </form>
+    </div>
+
+<script>
+const urlParams = new URLSearchParams(window.location.search);
+const studentId = urlParams.get('id');
+const studentForm = document.getElementById('studentForm');
+let existingPhotoPath = ''; // Store the current filename from DB
+
+// 1. Load Classes into Dropdowns
+async function populateClasses() {
+    try {
+        const classes = await window.api.getClasses();
+        const options = classes.map(c => `<option value="${c.class_name}">${c.class_name}</option>`).join('');
+        const defaultOption = '<option value="">Select Class</option>';
+        document.getElementById('admClass').innerHTML = defaultOption + options;
+        document.getElementById('studyClass').innerHTML = defaultOption + options;
+    } catch (err) { console.error("Failed to load classes:", err); }
+}
+
+// 2. Fill Data if in EDIT mode
+async function fillStudentData() {
+    if (!studentId) return;
+    try {
+        const s = await window.api.getStudentById(studentId);
+        if (!s) return;
+        
+        existingPhotoPath = s.picture_path || ''; // Save existing filename (e.g., reg_1.jpg)
+        
+        document.getElementById('regNo').value = s.registration_no || '';
+        document.getElementById('rollNo').value = s.roll_no || '';
+        document.getElementById('studentName').value = s.student_name || '';
+        document.getElementById('studentNameUrdu').value = s.student_name_urdu || '';
+        document.getElementById('fatherName').value = s.father_name || '';
+        document.getElementById('dob').value = s.dob || '';
+        document.getElementById('bForm').value = s.cnic_bform || '';
+        document.getElementById('admClass').value = s.admission_class || '';
+        document.getElementById('studyClass').value = s.current_class || '';
+        document.getElementById('section').value = s.section || '';
+        document.getElementById('admDate').value = s.admission_date || '';
+        document.getElementById('status').value = s.status || 'active';
+        document.getElementById('mobile').value = s.mobile || '';
+        document.getElementById('whatsapp').value = s.whatsapp || '';
+        document.getElementById('monthlyFee').value = s.monthly_fee || '';
+        document.getElementById('character').value = s.character_remarks || '';
+        document.getElementById('address').value = s.address || '';
+        
+        document.getElementById('submitBtn').innerText = "Update Student Record";
+        document.getElementById('formTitle').innerText = "Edit Student Admission";
+    } catch (err) { console.error("Error fetching student details:", err); }
+}
+
+// 3. Form Submission Handling
+studentForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const picInput = document.getElementById('picture');
+    let finalPicValue = existingPhotoPath; // Default to existing filename
+
+    // Check if a NEW file was selected
+    if (picInput.files && picInput.files.length > 0) {
+        // Get the real absolute path of the new file
+        finalPicValue = window.api.getFilePath(picInput.files[0]); 
+    }
+
+    const studentData = {
+        id: studentId,
+        regNo: document.getElementById('regNo').value,
+        rollNo: document.getElementById('rollNo').value,
+        name: document.getElementById('studentName').value,
+        nameUrdu: document.getElementById('studentNameUrdu').value,
+        fatherName: document.getElementById('fatherName').value,
+        dob: document.getElementById('dob').value,
+        cnic: document.getElementById('bForm').value,
+        pic: finalPicValue, // Either absolute path (NEW) or filename (OLD)
+        admClass: document.getElementById('admClass').value,
+        studyClass: document.getElementById('studyClass').value,
+        section: document.getElementById('section').value,
+        admDate: document.getElementById('admDate').value,
+        status: document.getElementById('status').value,
+        mobile: document.getElementById('mobile').value,
+        whatsapp: document.getElementById('whatsapp').value,
+        monthlyFee: document.getElementById('monthlyFee').value,
+        character: document.getElementById('character').value,
+        address: document.getElementById('address').value
+    };
+
+    try {
+        if (studentId) {
+            await window.api.updateStudent(studentData);
+            alert("Student Record Updated Successfully!");
+            window.api.changePage('components/student/student_list.html');
+        } else {
+            await window.api.addStudent(studentData);
+            alert("Student Registered Successfully!");
+            studentForm.reset();
+        }
+    } catch (error) {
+        alert("System Error: " + error.message);
+    }
+});
+
+window.onload = async () => {
+    await populateClasses();
+    await fillStudentData();
+};
+</script>
+
+</body>
+</html>
