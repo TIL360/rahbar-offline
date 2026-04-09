@@ -82,8 +82,16 @@ generateBulkFees: () => ipcRenderer.invoke('generate-bulk-fees'),
     // Add this inside your contextBridge
 recalculatePositions: (data) => ipcRenderer.invoke('recalculate-positions', data),
 // Add this inside the 'api' block in preload.js
-getAllStudentProgress: () => ipcRenderer.invoke('get-all-student-progress'),
+// Inside preload.js
+getAllStudentProgress: (filters) => ipcRenderer.invoke('get-all-student-progress', filters),
+
 getStudentProgress: (id) => ipcRenderer.invoke('get-student-progress', id),
+bulkUpdateFees: (data) => ipcRenderer.invoke('bulk-update-fees', data),
+// Inside your contextBridge.exposeInMainWorld('api', { ... })
+updateSingleFeeField: (data) => ipcRenderer.invoke('update-single-fee-field', data),
+  // Inside your preload.js
+saveToPdf: () => ipcRenderer.invoke('save-to-pdf'), 
+
 
 ///exam related
 getActiveClasses: () => ipcRenderer.invoke('get-active-classes'),

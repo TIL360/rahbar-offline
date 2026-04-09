@@ -212,7 +212,11 @@
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${row.registration_no || '-'}</td>
-                    <td class="name-col">${row.student_name}</td>
+                    <td class="name-col">
+  <a href="#" onclick="openSingleReport('${row.student_id}')" style="color: blue; cursor: pointer;">
+    ${row.student_name}
+  </a>
+</td>
                     ${activeSubs.map(sub => `<td>${row[sub.obt]}</td>`).join('')}
                     <td style="font-weight:bold">${row.total_obt}</td>
                     <td>${row.total_setmarks}</td>
@@ -274,8 +278,24 @@ async function saveModalMarks() {
     }
 }
 
-function navigateToProgressReports() {
-  window.location.href = 'progress_reports.html';
+ function navigateToProgressReports() {
+            const examId = document.getElementById('selectExam').value;
+            const className = document.getElementById('selectClass').value;
+
+            if (!examId || !className) {
+                alert("Please select both Exam and Class first!");
+                console.warn({examId, className})
+                return;
+            }
+            window.location.href = `progress_reports.html?examId=${examId}&className=${className}`;
+        }
+
+        window.onload = loadInitialData;
+
+function openSingleReport(studentId) {
+    const examId = document.getElementById('selectExam').value;
+    // Redirect to progress_reports.html with an extra studentId parameter
+    window.location.href = `progress_reports.html?examId=${examId}&studentId=${studentId}`;
 }
 
 </script>

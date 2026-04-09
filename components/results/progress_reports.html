@@ -1,341 +1,211 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: safe-file: https://ui-avatars.com file:;" />
-<title>Student Progress Reports - KIPS</title>
-<style>
-  :root { --primary: #2e08b6; --bg: #f4f6f9; --school-red: #b01e1e; }
-  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; padding: 20px; }
-  .nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-  .nav-header h2 { margin: 0; color: var(--primary); }
-  .btn { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; text-decoration: none; }
-  .btn-print { background: var(--primary); color: white; }
-  .btn-back { background: #6c757d; color: white; }
-  #reportsContainer { display: flex; flex-direction: column; align-items: center; }
-  .report-sheet { width: 210mm; min-height: 290mm; padding: 15mm; margin-bottom: 40px; background: white; border: 1px solid #ddd; box-shadow: 0 0 10px rgba(0,0,0,0.1); box-sizing: border-box; position: relative; color: #000; }
-  .school-header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px; }
-  .school-header h1 { margin: 0; color: var(--school-red); font-size: 26px; text-transform: uppercase; }
-  .school-header p { margin: 2px 0; font-size: 13px; font-weight: bold; }
-  .info-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-  .info-field { border-bottom: 1px solid #000; padding: 5px 2px; font-size: 14px; }
-  .label { font-weight: bold; }
-  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-  th, td { border: 1px solid #000; padding: 6px; text-align: center; font-size: 13px; }
-  th { background: #f2f2f2; }
-  .subject-col { text-align: left; padding-left: 10px; font-weight: 500; }
-  .general-report-box { border: 2px dashed #444; padding: 10px; margin-top: 25px; position: relative; }
-  .section-title { background: #fefeff; color: rgb(0, 0, 0); padding: 2px 10px; display: inline-block; font-size: 14px; margin-bottom: 10px; }
-  .report-line { margin: 12px 0; border-bottom: 1px dotted #000; height: 18px; }
-  .footer-sigs { display: flex; justify-content: space-between; margin-top: 70px; font-size: 13px; font-weight: bold; }
-  /* Container for the ID section to allow side-by-side layout */
-  .student-id-section {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 10px;
-  }
-  .student-info-left {
-      flex: 1;
-  }
-  .student-photo-container {
-      margin-left: 5px;
-  }
-  .student-photo {
-      width: 80px;
-      height: 80px;
-      object-fit: cover;
-      border-radius: 50%;
-      border: 2px solid black; /* Matching the teal/green circle in your image */
-      background: #008080;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 32px;
-      font-weight: bold;
-  }
-
-  .sig-line { border-top: 1px solid #000; width: 180px; text-align: center; padding-top: 5px; }
-   /* Styling for the General Report Box to match your image */
-    .general-report-box {
-        border: 2px dashed #333;
-        padding: 10px;
-        margin-top: 15px;
-        position: relative;
-        min-height: 80px;
-    }
-    .section-title {
-        font-weight: bold;
-        text-decoration: underline;
-        margin-bottom: 5px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    .edit-pencil {
-        cursor: pointer;
-        font-size: 16px;
-        transition: transform 0.2s;
-    }
-    .edit-pencil:hover {
-        transform: scale(1.2);
-    }
-    .remarks-text {
-        font-style: italic;
-        font-size: 20px;
-        color: #000000;
-        white-space: pre-wrap; /* Preserves line breaks */
-    }
-    .edit-container textarea {
-        width: 100%;
-        border: 1px solid #ccc;
-        padding: 5px;
-        font-family: inherit;
-        resize: none;
-    }
-    .btn-save-remarks {
-        background-color: #008080;
-        color: white;
-        border: none;
-        padding: 4px 10px;
-        border-radius: 4px;
-        cursor: pointer;
-        margin-top: 5px;
-    }
-    tfoot tr td {
-        border-top: 2px solid #000 !important;
-        background-color: #f9f9f9;
-    }
- @media print { body { background: none; padding: 0; } .nav-header { display: none; } .report-sheet { margin: 0; border: none; box-shadow: none; page-break-after: always; } @page { size: A4; margin: 0; } }
-</style>
+    <meta charset="UTF-8" />
+    <title>Student Progress Reports - KIPS</title>
+    <style>
+        :root { --primary: #2e08b6; --bg: #f4f6f9; --school-red: #b01e1e; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #000; }
+        .nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .report-sheet { width: 210mm; height: 297mm; padding: 15mm; margin: 0 auto 40px auto; background: white; border: 1px solid #ddd; box-sizing: border-box; position: relative; contain: layout; }
+        .school-header { text-align: center; margin-bottom: 15px; border-bottom: 2px solid #000; padding-bottom: 5px; }
+        .school-header h1 { margin: 0; color: var(--school-red); font-size: 26px; text-transform: uppercase; }
+        .school-header p { margin: 2px 0; font-size: 13px; font-weight: bold; }
+        .student-id-section { display: flex; justify-content: space-between; margin-bottom: 10px; }
+        .info-col { flex: 1; }
+        .info-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+        .info-field { border-bottom: 1px solid #000; padding: 4px 2px; font-size: 13px; }
+        .label { font-weight: bold; }
+        .student-photo { width: 85px; height: 85px; object-fit: cover; border-radius: 50%; border: 2px solid #000; background: #008080; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #000; padding: 6px; text-align: center; font-size: 13px; }
+        th { background: #f2f2f2; }
+        .subject-col { text-align: left; padding-left: 10px; }
+        .remarks-box { border: 2px dashed #333; padding: 10px; margin-top: 15px; min-height: 80px; position: relative; }
+        .remarks-text { font-style: italic; font-size: 18px; white-space: pre-wrap; }
+        .edit-icon { cursor: pointer; margin-left: 10px; font-size: 18px; }
+        .remarks-edit-container { display: none; margin-top: 10px; }
+        .remarks-input { width: 100%; height: 80px; font-size: 14px; }
+        .footer-sigs { position: absolute; bottom: 20mm; left: 15mm; right: 15mm; display: flex; justify-content: space-between; font-weight: bold; }
+        .sig-line { border-top: 1px solid #000; width: 170px; text-align: center; padding-top: 5px; font-size: 13px; }
+        @media print { 
+            body { background: none; padding: 0; } .nav-header { display: none; } 
+            .report-sheet { margin: 0; border: none; page-break-after: always; } 
+            @page { size: A4; margin: 0; } 
+        }
+    </style>
 </head>
 <body>
 <div class="nav-header">
-    <h2>Progress Report Generator</h2>
+    <h2 id="recordCounter">Loading Reports...</h2>
     <div>
-        <button class="btn btn-print" onclick="window.print()">Print All Reports</button>
-        <button class="btn btn-back" onclick="window.location.href='result.html'">Back </button>
+        <span id="loadProgress" style="margin-right:15px; font-weight:bold; color:var(--school-red);"></span>
+        <button class="btn" id="btnPrint" onclick="startExport()" disabled style="background:var(--primary); color:white; padding:10px 20px; border-radius:4px; cursor:pointer;">Save as PDF</button>
+        <button class="btn" onclick="window.location.href='result.html'" style="background:#6c757d; color:white; padding:10px 20px; border-radius:4px; cursor:pointer; margin-left:10px;">Back</button>
     </div>
 </div>
 <div id="reportsContainer"></div>
 
 <script>
-    // 1. Grade Calculation Logic
-    function getGrade(score, max) {
-        if (!max || score === null) return '-';
-        const p = (score / max) * 100;
-        if (p >= 90) return 'A+';
-        if (p >= 80) return 'A';
-        if (p >= 70) return 'B+';
-        if (p >= 60) return 'B';
-        if (p >= 50) return 'C';
-        if (p >= 40) return 'D';
-        return 'F';
-    }
+async function startExport() {
+    // Triggers the native system print dialog as configured in your main.js
+    await window.api.saveToPdf();
+}
 
-    // 2. UI Toggle Functions (Using result_id for unique targeting)
-    function enableEdit(resultId) {
-        const displayDiv = document.getElementById(`display-${resultId}`);
-        const editDiv = document.getElementById(`edit-container-${resultId}`);
-        if (displayDiv && editDiv) {
-            displayDiv.style.display = 'none';
-            editDiv.style.display = 'block';
-        }
-    }
+function getGrade(score, max) {
+    if (!max) return '-'; const p = (score / max) * 100;
+    if (p >= 90) return 'A+'; if (p >= 80) return 'A'; if (p >= 70) return 'B+';
+    if (p >= 60) return 'B'; if (p >= 50) return 'C'; if (p >= 40) return 'D';
+    return 'F';
+}
 
-    function cancelEdit(resultId) {
-        const displayDiv = document.getElementById(`display-${resultId}`);
-        const editDiv = document.getElementById(`edit-container-${resultId}`);
-        if (displayDiv && editDiv) {
-            displayDiv.style.display = 'block';
-            editDiv.style.display = 'none';
-        }
-    }
+async function loadReports() {
+    const container = document.getElementById('reportsContainer');
+    const progText = document.getElementById('loadProgress');
+    const printBtn = document.getElementById('btnPrint');
+    const recordCounter = document.getElementById('recordCounter');
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const examId = urlParams.get('examId');
+    const className = urlParams.get('className');
+    const studentId = urlParams.get('studentId'); // Capture single student ID
 
-    // 3. Save Logic (Communicates with main.js via preload.js)
-    async function saveRemarks(resultId) {
-        const inputField = document.getElementById(`input-${resultId}`);
-        const newRemarks = inputField ? inputField.value : '';
+    try {
+        let data = [];
         
-        try {
-            // Calling the API defined in your preload.js
-            const success = await window.api.updateResultRemarks(resultId, newRemarks);
-            
-            if (success) {
-                // Update the visual text immediately without refreshing
-                const textSpan = document.getElementById(`display-text-${resultId}`);
-                if (textSpan) {
-                    textSpan.innerText = newRemarks || 'No remarks entered.';
-                }
-                cancelEdit(resultId);
-            } else {
-                alert("Failed to update database. Please check if result_id is valid.");
+        // LOGIC SWITCH: Single Student vs. Full Class
+        if (studentId) {
+            const singleRecord = await window.api.getStudentProgress(studentId);
+            if (singleRecord) {
+                // Ensure data is always an array for the renderBatch loop
+                data = [singleRecord];
+                recordCounter.innerText = `Report for: ${singleRecord.student_name}`;
             }
-        } catch (err) {
-            console.error("Save error:", err);
-            alert("An error occurred while saving: " + err.message);
+        } else {
+            const filters = { examId, className };
+            data = await window.api.getAllStudentProgress(filters);
+            recordCounter.innerText = `Total Records: ${data.length}`;
         }
-    }
 
-    // 4. Main Report Loader
-    async function loadProgressReports() {
-        const container = document.getElementById('reportsContainer');
-        try {
-            const data = await window.api.getAllStudentProgress();
-            if (!data || data.length === 0) {
-                container.innerHTML = '<p style="text-align:center;">No student results found.</p>';
-                return;
-            }
+        if (!data || data.length === 0) { 
+            container.innerHTML = `<h2 style='text-align:center;'>No records found.</h2>`; 
+            recordCounter.innerText = "Total Records: 0";
+            return; 
+        }
 
-            const subjects = [
-                { id: 'Urdu', set: 'urdu_setmarks', obt: 'urdu_obt' },
-                { id: 'Eng', set: 'eng_setmarks', obt: 'eng_obt' },
-                { id: 'Math', set: 'math_setmarks', obt: 'math_obt' },
-                { id: 'SST', set: 'sst_setmarks', obt: 'sst_obt' },
-                { id: 'Isl', set: 'islamiat_setmarks', obt: 'islamiat_obt' },
-                { id: 'Sci', set: 'science_setmarks', obt: 'science_obt' },
-                { id: 'Phy', set: 'physics_setmarks', obt: 'physics_obt' },
-                { id: 'Chem', set: 'chemistry_setmarks', obt: 'chemistry_obt' },
-                { id: 'Bio', set: 'biology_setmarks', obt: 'biology_obt' },
-                { id: 'Comp', set: 'computer_setmarks', obt: 'computer_obt' },
-                { id: 'Draw', set: 'drawing_setmarks', obt: 'drawing_obt' },
-                { id: 'Geog', set: 'geography_setmarks', obt: 'geography_obt' }
-            ];
+        const subjects = [
+            { id: 'Urdu', set: 'urdu_setmarks', obt: 'urdu_obt' }, { id: 'Eng', set: 'eng_setmarks', obt: 'eng_obt' },
+            { id: 'Math', set: 'math_setmarks', obt: 'math_obt' }, { id: 'SST', set: 'sst_setmarks', obt: 'sst_obt' },
+            { id: 'Isl', set: 'islamiat_setmarks', obt: 'islamiat_obt' }, { id: 'Sci', set: 'science_setmarks', obt: 'science_obt' },
+            { id: 'Phy', set: 'physics_setmarks', obt: 'physics_obt' }, { id: 'Chem', set: 'chemistry_setmarks', obt: 'chemistry_obt' },
+            { id: 'Bio', set: 'biology_setmarks', obt: 'biology_obt' }, { id: 'Comp', set: 'computer_setmarks', obt: 'computer_obt' }
+        ];
 
-            container.innerHTML = ''; // Clear container
-
-            for (const student of data) {
-                const activeSubjects = subjects.filter(s => student[s.set] > 0);
-                if (activeSubjects.length === 0) continue;
-
-                let subjectRows = '';
-                let totalMarksObt = 0;
-                let totalMarksMax = 0;
-                let subjectsFailed = 0;
-
-                activeSubjects.forEach(sub => {
-                    const ob = student[sub.obt] || 0;
-                    const mx = student[sub.set] || 0;
-                    const p = mx > 0 ? (ob / mx) * 100 : 0;
-                    totalMarksObt += ob;
-                    totalMarksMax += mx;
-                    if (p < 40) subjectsFailed++; 
-
-                    subjectRows += `<tr>
-                        <td class="subject-col">${sub.id}</td>
-                        <td>${mx}</td>
-                        <td>${ob}</td>
-                        <td>${Math.round(p)}%</td>
-                        <td>${getGrade(ob, mx)}</td>
-                    </tr>`;
+        let index = 0;
+        async function renderBatch() {
+            const batchSize = 10; 
+            const end = Math.min(index + batchSize, data.length);
+            for (; index < end; index++) {
+                const s = data[index];
+                
+                // --- Your existing rendering logic remains exactly the same ---
+                let rows = ''; let tObt = 0; let tMax = 0; let failed = 0;
+                subjects.filter(sub => s[sub.set] > 0).forEach(sub => {
+                    const ob = s[sub.obt] || 0; const mx = s[sub.set] || 0;
+                    tObt += ob; tMax += mx; if ((ob/mx)*100 < 40) failed++;
+                    rows += `<tr><td class="subject-col">${sub.id}</td><td>${mx}</td><td>${ob}</td><td>${Math.round((ob/mx)*100)}%</td><td>${getGrade(ob, mx)}</td></tr>`;
                 });
 
-                const totalPerc = totalMarksMax > 0 ? ((totalMarksObt / totalMarksMax) * 100).toFixed(1) : '0.0';
-                const overallGrade = getGrade(totalMarksObt, totalMarksMax);
-                const status = subjectsFailed > 1 ? "Detained" : "Promoted";
-                
-                // CRITICAL: Ensure result_id is being used for all element IDs
-                const rId = student.result_id;
-
-                // Resolve Student Image
-                let imgSrc = `https://ui-avatars.com{encodeURIComponent(student.student_name)}&background=008080&color=fff`;
-                if (student.picture_path) {
-                    try {
-                        const path = await window.api.getImageUrl(student.picture_path);
-                        if (path) imgSrc = path;
-                    } catch (e) { console.error("Image error:", e); }
+                let imgSrc = `https://ui-avatars.com{encodeURIComponent(s.student_name)}&background=008080&color=fff`;
+                if (s.picture_path) { 
+                    try { const p = await window.api.getImageUrl(s.picture_path); if (p) imgSrc = p; } catch (e) {} 
                 }
 
-                const report = document.createElement('div');
-                report.className = 'report-sheet';
-                report.innerHTML = `
+                const sheet = document.createElement('div');
+                sheet.className = 'report-sheet';
+                sheet.innerHTML = `
                     <div class="school-header">
-                        <h1>YOUR SCHOOL NAME HERE</h1>
-                        <p>Address line goes here</p>
-                        <p>Cell # 0300-xxxxxx, E-mail: school@example.com</p>
+                        <h1>KIPS SCHOOL SYSTEM</h1>
+                        <p>Address: City Branch, Near Main Road</p>
+                        <p>Contact: 0300-1234567 | 0321-7654321</p>
                     </div>
-
                     <div class="student-id-section">
-                        <div class="student-info-left">
+                        <div class="info-col">
                             <div class="info-row">
-                                <div class="info-field"><span class="label">Name:</span> ${student.student_name}</div>
-                                <div class="info-field"><span class="label">Roll No:</span> ${student.roll_no || '___'}</div>
-                                <div class="info-field"><span class="label">Admission No:</span> ${student.registration_no}</div>
+                                <div class="info-field"><span class="label">Name:</span> ${s.student_name}</div>
+                                <div class="info-field"><span class="label">Roll No:</span> ${s.roll_no || '___'}</div>
+                                <div class="info-field"><span class="label">Reg No:</span> ${s.registration_no}</div>
                             </div>
                             <div class="info-row">
-                                <div class="info-field"><span class="label">Father Name:</span> ${student.father_name || '___________'}</div>
-                                <div class="info-field"><span class="label">Class & Section:</span> ${student.class || 'N/A'} - ${student.section || 'A'}</div>
+                                <div class="info-field"><span class="label">Father:</span> ${s.father_name || '___________'}</div>
+                                <div class="info-field"><span class="label">Class:</span> ${s.class} - ${s.section || 'A'}</div>
                             </div>
                         </div>
-                        <div class="student-photo-container">
-                            <img src="${imgSrc}" class="student-photo" onerror="this.src='https://ui-avatars.com'" />
-                        </div>
+                        <img src="${imgSrc}" class="student-photo" />
                     </div>
-
                     <table>
-                        <thead>
-                            <tr>
-                                <th>Subjects</th>
-                                <th>Total Marks</th>
-                                <th>Obt Marks</th>
-                                <th>%age</th>
-                                <th>Grade</th>
-                            </tr>
-                        </thead>
-                        <tbody>${subjectRows}</tbody>
-                        <tfoot>
-                            <tr style="font-weight: bold; background-color: #f2f2f2;">
-                                <td>TOTAL</td>
-                                <td>${totalMarksMax}</td>
-                                <td>${totalMarksObt}</td>
-                                <td>${totalPerc}%</td>
-                                <td>${overallGrade}</td>
-                            </tr>
-                        </tfoot>
+                        <thead><tr><th>Subject</th><th>Total</th><th>Obt</th><th>%</th><th>Grade</th></tr></thead>
+                        <tbody>${rows}</tbody>
+                        <tfoot><tr style="font-weight:bold; background:#f2f2f2;"><td>TOTAL</td><td>${tMax}</td><td>${tObt}</td><td>${Math.round((tObt/tMax)*100)}%</td><td>${getGrade(tObt, tMax)}</td></tr></tfoot>
                     </table>
-                     
-                    <p style="margin-top:10px;">
-                        <strong>Result: ${status}</strong> &nbsp;&nbsp; 
-                        <span class="label">|| Position in Class:</span> ${student.position || '___'}
-                    </p>
-
-                    <div class="general-report-box" style="border: 2px dashed #333; padding: 10px; margin-top: 15px;">
-                        <div class="section-title" style="font-weight: bold; text-decoration: underline; margin-bottom: 5px;">
-                            General Report <span class="edit-pencil" onclick="enableEdit('${rId}')" style="cursor:pointer; margin-left:0px;">✏️</span>
+                    <p style="margin-top:10px;"><strong>Result: ${failed > 1 ? 'Detained' : 'Promoted'}</strong> | <strong>Position: ${s.position || '___'}</strong></p>
+                    <div class="remarks-box">
+                        <div style="display:flex; align-items:center;">
+                            <div class="label" style="text-decoration:underline;">General Report:</div>
+                            <div class="edit-icon" onclick="enableEdit('${s.result_id}')">✏️</div>
                         </div>
-                        
-                        <div id="display-${rId}">
-                            <span class="remarks-text" id="display-text-${rId}">${student.remarks || 'No remarks entered.'}</span>
+                        <div id="display-${s.result_id}">
+                            <div id="display-text-${s.result_id}">${s.remarks || 'No remarks entered.'}</div>
                         </div>
-
-                        <div id="edit-container-${rId}" style="display:none; margin-top:5px;">
-                            <textarea id="input-${rId}" maxlength="200" rows="3" style="width:100%; padding:5px;">${student.remarks || ''}</textarea>
-                            <div style="margin-top:5px;">
-                                <button onclick="saveRemarks('${rId}')" style="background:#008080; color:white; border:none; padding:5px 15px; cursor:pointer;">Save</button>
-                                <button onclick="cancelEdit('${rId}')" style="padding:5px 15px; cursor:pointer; margin-left:5px;">Cancel</button>
-                            </div>
+                        <div class="remarks-edit-container" id="edit-container-${s.result_id}">
+                            <textarea id="input-${s.result_id}" class="remarks-input">${s.remarks || ''}</textarea>
+                            <button onclick="saveRemarks('${s.result_id}')">Save</button>
+                            <button onclick="cancelEdit('${s.result_id}')">Cancel</button>
                         </div>
                     </div>
-
-                    <div class="footer-sigs" style="display:flex; justify-content:space-between; margin-top:40px;">
-                        <div class="sig-line" style="border-top:1px solid #000; width:150px; text-align:center;">Result Date</div>
-                        <div class="sig-line" style="border-top:1px solid #000; width:200px; text-align:center;">Exam Incharge Sig</div>
-                        <div class="sig-line" style="border-top:1px solid #000; width:150px; text-align:center;">Principal Sig</div>
-                    </div>
-                `;
-                container.appendChild(report);
+                    <div class="footer-sigs">
+                        <div class="sig-line">Result Date</div>
+                        <div class="sig-line">Exam Incharge</div>
+                        <div class="sig-line">Principal Signature</div>
+                    </div>`;
+                container.appendChild(sheet);
             }
-        } catch (err) {
-            console.error("Loader Error:", err);
-            container.innerHTML = '<p style="color:red;">Error loading student data. Check console for details.</p>';
+            
+            progText.innerText = `Loaded: ${Math.round((index/data.length)*100)}%`;
+            if (index < data.length) setTimeout(renderBatch, 5);
+            else { printBtn.disabled = false; progText.innerText = "Ready!"; }
         }
+        renderBatch();
+    } catch (err) { 
+        console.error(err);
+        container.innerHTML = "Error loading reports."; 
     }
+}
 
-    // Run loader on page start
-    window.onload = loadProgressReports;
+function enableEdit(resultId) {
+    document.getElementById(`display-${resultId}`).style.display = 'none';
+    document.getElementById(`edit-container-${resultId}`).style.display = 'block';
+}
+
+function cancelEdit(resultId) {
+    document.getElementById(`display-${resultId}`).style.display = 'block';
+    document.getElementById(`edit-container-${resultId}`).style.display = 'none';
+}
+
+async function saveRemarks(resultId) {
+    const newRemarks = document.getElementById(`input-${resultId}`).value;
+    try {
+        const success = await window.api.updateResultRemarks(resultId, newRemarks);
+        if (success) {
+            document.getElementById(`display-text-${resultId}`).innerText = newRemarks || 'No remarks entered.';
+            cancelEdit(resultId);
+        } else {
+            alert('Failed to save remarks.');
+        }
+    } catch (err) { alert('Error saving remarks.'); }
+}
+
+window.onload = loadReports;
 </script>
-
-
 </body>
 </html>

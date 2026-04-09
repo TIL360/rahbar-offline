@@ -47,6 +47,7 @@
         
         .footer { margin-top: auto; display: flex; justify-content: space-between; padding-top: 15px; }
         .sig-line { border-top: 1.2px solid #000; width: 75px; text-align: center; font-size: 9px; padding-top: 3px; }
+.refresh-btn { background: white; border: 1px solid #ddd; padding: 8px 15px; border-radius: 5px; cursor: pointer; color: black; }
 
         /* Print Specifics */
         @media print {
@@ -62,8 +63,10 @@
     <div class="no-print" style="text-align:center; padding: 15px; background: #2c3e50; color:white;">
         <button onclick="window.print()" style="padding: 10px 25px; cursor: pointer; font-weight: bold; border-radius: 5px; border:none; background:#27ae60; color:white;">🖨️ Click to Print Invoices</button>
         <p id="counterNote" style="margin: 8px 0 0 0; font-size: 13px; opacity: 0.9;"></p><br/>
-        <a href="../fee/feelist.html" class="back-link" style="background-color: #eee;">← Fee List</a>
-    </div>
+         <!-- <a href="../fee/feelist.html" class="back-link" style="background-color: #eee;">← Fee List</a> -->
+        <button class="refresh-btn" onclick="window.location.href='../fee/feelist.html'">Back</button>
+
+        </div>
 
     <div id="invoiceContainer">
         <!-- Student Pages will be injected here -->

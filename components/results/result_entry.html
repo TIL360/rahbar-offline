@@ -136,6 +136,7 @@ input, select {
             padding-top: 15px;
             border-top: 2px solid #eee;
         }
+        .refresh-btn { background: white; border: 1px solid #ddd; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
 
         #displayTotal { font-size: 20px; color: var(--primary); font-weight: 800; }
     </style>
@@ -145,7 +146,7 @@ input, select {
 <div class="container">
     <div class="header">
         <h2>Exam & Marks Management</h2>
-        <a href="../dashboard.html" class="back-link">← Back to Dashboard</a>
+        <button class="refresh-btn" onclick="window.location.href='../dashboard.html'">Dashboard</button>
     </div>
 
     <!-- ROW 1: PREPARATION -->

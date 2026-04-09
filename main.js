@@ -21,7 +21,7 @@ if (!fs.existsSync(imagesDir)) {
 }
 
 // 1. EXPIRY CONFIGURATION
-const EXPIRY_DATE = new Date(2026, 6, 30); // May 15, 2026
+const EXPIRY_DATE = new Date(2026, 5, 31); // May 31, 2026
 
 // 2. IMPORT FROM DATABASE.JS
 const { 
@@ -286,6 +286,63 @@ ipcMain.handle('update-student', async (event, studentData) => {
     throw error;
   }
 });
+ipcMain.handle('bulk-update-fees', async (event, { exam, lab, misc, month, year, className }) => {
+    try {
+        const sql = `
+            UPDATE fee_tbl 
+            SET exam_fee = ?, 
+                lab_fee = ?, 
+                misc_fee = ? 
+            WHERE invoice_month = ? 
+              AND invoice_year = ? 
+              AND current_class = ?
+        `;
+        const stmt = db.prepare(sql);
+        const info = stmt.run(exam, lab, misc, month, year, className);
+        return { success: true, count: info.changes };
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle('update-single-fee-field', async (event, { id, field, value }) => {
+    try {
+        // Whitelist for security
+        const allowedFields = ['adm_fee', 'tuition_fee', 'exam_fee', 'lab_fee', 'misc_fee'];
+        if (!allowedFields.includes(field)) throw new Error("Invalid field");
+
+        // ONLY update the specific field. 
+        // DO NOT include 'total_fee' or 'balance' in the SET clause.
+        const sql = `UPDATE fee_tbl SET ${field} = ? WHERE id = ?`;
+        
+        const stmt = db.prepare(sql);
+        const info = stmt.run(value, id);
+
+        return { success: info.changes > 0 };
+    } catch (err) {
+        console.error("Database Error:", err);
+        return { success: false, error: err.message };
+    }
+});
+
+// Add this to your main.js
+// main.js optimization
+// In main.js, replace your existing 'save-to-pdf' handler with this:
+ipcMain.handle('save-to-pdf', async (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    // This triggers the native system dialog directly
+    win.webContents.print({
+        silent: false, // This ensures the prompt action happens
+        printBackground: true,
+        deviceName: ''
+    });
+    return true;
+});
+
+
+
+
+
 async function saveRemarks(resultId) {
     const newRemarks = document.getElementById(`input-${resultId}`).value;
     try {
@@ -305,19 +362,20 @@ async function saveRemarks(resultId) {
 }
 // Replace this with your actual database update logic
 ipcMain.handle('update-result-remarks', async (event, resultId, remarks) => {
-  try {
-    // Example using a hypothetical db object
-    // const result = await db.run('UPDATE results SET remarks = ? WHERE id = ?', [remarks, resultId]);
-    
-    console.log(`Updating ID ${resultId} with remarks: ${remarks}`);
-    
-    // Return true if the operation was successful
-    return true; 
-  } catch (error) {
-    console.error("Database update failed:", error);
-    return false;
-  }
+    try {
+        // This is the SQL execution line that was missing
+        const stmt = db.prepare('UPDATE result SET remarks = ? WHERE result_id = ?');
+        const info = stmt.run(remarks, resultId);
+        
+        console.log(`Updated result_id: ${resultId}`);
+        return info.changes > 0; // Returns true if save was successful
+    } catch (error) {
+        console.error("Database update failed:", error);
+        return false;
+    }
 });
+
+
 
 
 
@@ -450,10 +508,46 @@ ipcMain.handle('update-set-marks', async (event, data) => {
 });
 
 // Add these handlers in main.js
-ipcMain.handle('get-all-student-progress', async () => {
-    // Replace with your actual database logic from dbLogic
-    return db.prepare('SELECT r.*, s.student_name, s.father_name, s.picture_path, s.roll_no, s.registration_no,r.class,  r.result_id FROM result r JOIN students s ON r.student_id = s.id').all();
+// In main.js - Replace the existing get-all-student-progress handler
+// main.js
+ipcMain.handle('get-all-student-progress', async (event, filters = {}) => {
+    try {
+        const { examId, className } = filters;
+        
+        // 1. Start with the base query (No WHERE clause yet)
+        let sql = `
+            SELECT r.*, s.student_name, s.father_name, s.picture_path, s.roll_no, s.registration_no 
+            FROM result r 
+            JOIN students s ON r.student_id = s.id
+        `;
+        
+        const params = [];
+
+        // 2. Add filtering only if values are provided
+        if (examId && className) {
+            sql += ` WHERE r.exam_id = ? AND r.class = ?`;
+            params.push(examId, className);
+        }
+        
+        // 3. Add ordering
+        sql += ` ORDER BY r.total_obt DESC`;
+        
+        const stmt = db.prepare(sql);
+
+        // 4. Execute with parameters if they exist, otherwise fetch all
+        const results = params.length > 0 ? stmt.all(...params) : stmt.all();
+        
+        console.log(`Found ${results.length} records for Exam: ${examId}, Class: ${className}`);
+        return results;
+
+    } catch (err) {
+        console.error("Database Error in Progress Reports:", err);
+        return [];
+    }
 });
+
+
+
 
 ipcMain.handle('get-student-progress', async (event, studentId) => {
     return db.prepare('SELECT r.*, s.student_name, s.picture_path, s.registration_no FROM result r JOIN students s ON r.student_id = s.id WHERE r.student_id = ?').get(studentId);
