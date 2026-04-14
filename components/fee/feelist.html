@@ -80,8 +80,8 @@ tr:hover { background: #fcfcfc; }
     <div id="filterInfoDisplay" style="margin-left: 20px; font-weight: bold; color: #2c3e50; flex-grow: 1;"></div>
     
     <div class="btn-group">
-        <button class="btn-action btn-print-all" onclick="viewBulkInvoices()"><span>🖨️ Print All</span></button>
-        <button class="btn-action btn-other-fee" onclick="openOtherFeeModal()"><span>💰 Other Fee</span></button>
+        <button class="btn-action btn-print-all"  title="Print Invoices of all selected records " onclick="viewBulkInvoices()"><span>🖨️ Print All</span></button>
+        <button class="btn-action btn-other-fee"  title="Add other fee for selected records" onclick="openOtherFeeModal()"><span>💰 Other Fee</span></button>
     </div>
 </div>
 
@@ -93,7 +93,7 @@ tr:hover { background: #fcfcfc; }
     <table>
         <thead>
             <tr>
-                <th>Inv #</th><th>Reg No</th><th>Student Name</th><th>Tuition</th><th>Adm</th>
+                <th>Inv #</th><th>Reg No / Student Name</th><th>Tuition</th><th>Adm</th>
                 <th>Exam</th><th>Lab</th><th>Sec.</th><th>Misc</th><th>Total</th>
                 <th>Collected</th><th>Bal</th><th>Arrears</th><th>Actions</th>
             </tr>
@@ -141,6 +141,8 @@ tr:hover { background: #fcfcfc; }
 let currentTableData = []; 
 let currentPage = 1;
 const recordsPerPage = 30;
+// Track which field we are currently editing
+let currentEditingField = ''; 
 
 document.addEventListener('DOMContentLoaded', async () => { await populateFilters(); });
 
@@ -179,23 +181,22 @@ function renderPage(page) {
         tableBody.innerHTML += `
         <tr>
             <td>${row.id}</td>
-            <td>${row.registration_no}</td>
-            <td><strong>${row.student_name}</strong></td>
+            <td>${row.registration_no}<br/><strong>${row.student_name}</strong></td>
             <td>${format(row.monthly_fee)}</td>
-            <td>${format(row.adm_fee)} <span onclick="openEditAdm(${row.id}, ${row.adm_fee})" style="cursor:pointer; color:#3498db; margin-left:5px;">✏️</span></td>
-            <td>${format(row.exam_fee)}</td>
-            <td>${format(row.lab_fee)}</td>
+            <td>${format(row.adm_fee)} <span onclick="openEdit('adm_fee', ${row.id}, ${row.adm_fee})" style="cursor:pointer; color:#3498db; margin-left:5px;">✏️</span></td>
+            <td>${format(row.exam_fee)} <span onclick="openEdit('exam_fee', ${row.id}, ${row.exam_fee})" style="cursor:pointer; color:#3498db; margin-left:5px;">✏️</span></td>
+            <td>${format(row.lab_fee)} <span onclick="openEdit('lab_fee', ${row.id}, ${row.lab_fee})" style="cursor:pointer; color:#3498db; margin-left:5px;">✏️</span></td>
             <td>${row.section || '-'}</td>
-            <td>${format(row.misc_fee)}</td>
+            <td>${format(row.misc_fee)} <span onclick="openEdit('misc_fee', ${row.id}, ${row.misc_fee})" style="cursor:pointer; color:#3498db; margin-left:5px;">✏️</span></td>
             <td class="txt-bold">${format(row.total_fee)}</td>
             <td class="txt-success">${format(row.collection)}</td>
             <td class="${row.balance > 0 ? 'txt-danger' : ''}">${format(row.balance)}</td>
             <td class="txt-danger">${format(row.previous_arrears)}</td>
             <td>
                 <div class="btn-group">
-                    <button class="btn btn-pay" onclick="collectFee(${row.id})">💰 Collect</button>
-                    <button class="btn btn-invoice" onclick="viewInvoice(${row.id})">📄 Invoice</button>
-                    <button class="btn btn-delete" onclick="deleteFee(${row.id})">✖</button>
+                    <button class="btn btn-pay"  title="Collect Student Fee" onclick="collectFee(${row.id})">💰 </button>
+                    <button class="btn btn-invoice"  title="Generate Single Student Invoice for Current Month" onclick="viewInvoice(${row.id})">📄 </button>
+                    <button class="btn btn-delete"  title="Delete Record" onclick="deleteFee(${row.id})">✖</button>
                 </div>
             </td>
         </tr>`;
@@ -213,19 +214,43 @@ function renderPaginationControls() {
     }
 }
 
-// Custom Modal Fix for "Prompt" Error
-function openEditAdm(id, val) {
+/** 
+ * Unified Edit Function
+ * @param {string} field - The DB column name (adm_fee, exam_fee, etc.)
+ * @param {number} id - Record ID
+ * @param {number} val - Current Value
+ */
+function openEdit(field, id, val) {
+    currentEditingField = field;
+    const friendlyName = field.replace('_', ' ').toUpperCase();
+    
     document.getElementById('editFeeId').value = id;
     document.getElementById('singleFeeValue').value = val;
-    document.getElementById('editModalTitle').innerText = `Update Adm Fee (ID: ${id})`;
+    document.getElementById('editModalTitle').innerText = `Update ${friendlyName} (ID: ${id})`;
     document.getElementById('singleEditModal').style.display = 'flex';
 }
-function closeSingleEdit() { document.getElementById('singleEditModal').style.display = 'none'; }
+
+function closeSingleEdit() { 
+    document.getElementById('singleEditModal').style.display = 'none'; 
+}
+
 async function saveSingleEdit() {
     const id = document.getElementById('editFeeId').value;
     const value = parseFloat(document.getElementById('singleFeeValue').value) || 0;
-    const result = await window.api.updateSingleFeeField({ id, field: 'adm_fee', value });
-    if (result.success) { closeSingleEdit(); loadFeeData(); } else { alert("Error: " + result.error); }
+    
+    // Pass the dynamic field name to the API
+    const result = await window.api.updateSingleFeeField({ 
+        id, 
+        field: currentEditingField, 
+        value 
+    });
+
+    if (result.success) { 
+        closeSingleEdit(); 
+        loadFeeData(); 
+    } else { 
+        alert("Error: " + result.error); 
+    }
 }
 
 function openOtherFeeModal() { if(currentTableData.length > 0) document.getElementById('otherFeeModal').style.display = 'flex'; }
@@ -253,15 +278,21 @@ function filterFeeTable() {
 }
 
 function viewInvoice(id) {
-    localStorage.setItem('print_ids', id);
-    window.api.changePage(`components/fee/invoice.html?mode=single`);
+    // Determine the correct path relative to your project root
+    const url = `invoice.html?id=${id}&mode=single`; 
+    
+    // Open in child window
+    window.open(url, '_blank', 'width=900,height=800,scrollbars=yes');
 }
 
 function viewBulkInvoices() {
     if (currentTableData.length === 0) return;
-    localStorage.setItem('print_ids', currentTableData.map(r => r.id).join(','));
-    window.api.changePage(`components/fee/invoice.html?mode=bulk`);
+    const ids = currentTableData.map(r => r.id).join(',');
+    const url = `invoice.html?ids=${ids}&mode=bulk`;
+    
+    window.open(url, '_blank', 'width=900,height=800');
 }
+
 
 function collectFee(id) {
     localStorage.setItem('collectFeeId', id);
@@ -276,6 +307,7 @@ async function deleteFee(id) {
     }
 }
 </script>
+
 </body>
 </html>
     

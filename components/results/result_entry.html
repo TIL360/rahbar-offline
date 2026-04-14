@@ -8,12 +8,12 @@
      :root {
     --primary: #2e08b6;
     --success: #28a745;
-    --bg: #f4f6f9;
+    --bg: #f1f5f9;
 }
 
 body {
     font-family: 'Segoe UI', sans-serif;
-    background-color: var(--bg);
+    background-color: #f1f5f9;
     margin: 0;
     padding: 10px 20px; /* Reduced padding */
     height: 100vh;
@@ -142,11 +142,14 @@ input, select {
     </style>
 </head>
 <body>
+    <h1 style="text-align: center; color: navy; text-decoration: underline; text-shadow: #666;">EXAM MANAGEMENT</h1>
 
 <div class="container">
     <div class="header">
         <h2>Exam & Marks Management</h2>
         <button class="refresh-btn" onclick="window.location.href='../dashboard.html'">Dashboard</button>
+        <!-- <button class="refresh-btn" style="background-color: navy; color: white;" onclick="window.location.href='qbank.html'">Q Bank</button> -->
+        <button class="refresh-btn" style="background-color: navy; color: white;" onclick="window.location.href='datesheet.html'"><strong>Date Sheet</strong></button>
     </div>
 
     <!-- ROW 1: PREPARATION -->

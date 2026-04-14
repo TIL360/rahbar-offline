@@ -21,7 +21,7 @@ if (!fs.existsSync(imagesDir)) {
 }
 
 // 1. EXPIRY CONFIGURATION
-const EXPIRY_DATE = new Date(2026, 5, 31); // May 31, 2026
+const EXPIRY_DATE = new Date(2027, 4, 30); // May 31, 2026
 
 // 2. IMPORT FROM DATABASE.JS
 const { 
@@ -32,6 +32,7 @@ const {
 } = require('./database.js');
 
 let win;
+Menu.setApplicationMenu(null); 
 
 function createWindow() {
     // EXPIRY CHECK
@@ -39,15 +40,15 @@ function createWindow() {
     if (today > EXPIRY_DATE) {
         dialog.showErrorBox(
             "System Lock", 
-            "Your license has expired. Please contact the administrator to continue using this software. Contact: 0322-5366745, E-mail: itsmeaamer85@gmail.com"
+            "Your license has expired. Please contact the administrator to continue using this software. Contact: 0311-5101738, E-mail: techinfolab360@gmail.com "
         );
         app.quit();
         return;
     }
 
     win = new BrowserWindow({
-        width: 1100,
-        height: 850,
+        width: 1920,//1100
+        height: 1080,//850
         titleBarStyle: "default",
         backgroundColor: "#fdf0d5",
         webPreferences: {
@@ -57,6 +58,22 @@ function createWindow() {
             sandbox: false
         }
     });
+
+      // ADD THIS BLOCK BELOW TO FIX THE CHILD WINDOW ERROR
+    win.webContents.setWindowOpenHandler(({ url }) => {
+        return {
+            action: 'allow',
+            overrideBrowserWindowOptions: {
+                webPreferences: {
+                    preload: path.join(__dirname, 'preload.js'), // This gives window.api to the invoice
+                    contextIsolation: true,
+                    nodeIntegration: false,
+                    sandbox: false
+                }
+            }
+        };
+    });
+    
 
     // --- CSP FIX: ALLOW SAFE-FILE PROTOCOL ---
    // Inside createWindow() function
@@ -103,7 +120,7 @@ ipcMain.handle('get-license-status', () => {
     const totalDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
     const months = Math.floor(totalDays / 30);
     const days = totalDays % 30;
-    return `(Trial Version ${months} Months, ${days} Days Remaining`;
+    return `(Validity Period: ${months} Months, ${days} Days Remaining)`;
 });
 ipcMain.handle('get-image-url', (event, picturePath) => {
     if (picturePath) {
@@ -476,7 +493,7 @@ ipcMain.handle('initiate-exam-logic', async (event, { examId, selectedClasses })
 ipcMain.handle('get-dropdown-data', async () => {
     try {
         const exams = db.prepare('SELECT exam_id, exam_name FROM exams ORDER BY created_at DESC').all();
-        const classes = db.prepare('SELECT class_name FROM classes ORDER BY class_name ASC').all();
+        const classes = db.prepare('SELECT id, class_name FROM classes ORDER BY class_name ASC').all();
         return { success: true, exams, classes };
     } catch (err) {
         return { success: false, error: err.message };
@@ -547,10 +564,8 @@ ipcMain.handle('get-all-student-progress', async (event, filters = {}) => {
 });
 
 
-
-
 ipcMain.handle('get-student-progress', async (event, studentId) => {
-    return db.prepare('SELECT r.*, s.student_name, s.picture_path, s.registration_no FROM result r JOIN students s ON r.student_id = s.id WHERE r.student_id = ?').get(studentId);
+    return db.prepare('SELECT r.*, s.student_name, s.father_name, s.picture_path, s.roll_no, s.registration_no FROM result r JOIN students s ON r.student_id = s.id WHERE r.student_id = ?').get(studentId);
 });
 
 
@@ -645,22 +660,41 @@ ipcMain.handle('initiate-salary', async (event, month, year) => {
 ipcMain.handle('get-salaries', async (event, { month, year }) => {
     return dbLogic.getSalaries(month, year);
 });
+// main.js
+// main.js handler
+// Change from (event, id, status, salary) to (event, { id, status, salary })
 ipcMain.handle('update-salary-status', async (event, { id, status, salary }) => {
-    return dbLogic.updateSalaryStatus(id, status, salary);
-});
-ipcMain.handle('get-dashboard-stats', async () => {
-    return dbLogic.getDashboardStats();
-});
-ipcMain.handle('update-availed-leaves', async (event, { id, count }) => {
     try {
-        const stmt = db.prepare("UPDATE salary_tbl SET availed_leaves = ? WHERE id = ? AND status = 'Unpaid'");
-        const info = stmt.run(count, id);
-        return info.changes > 0; 
+        // Now id, status, and salary are correctly defined from the object
+        const stmt = db.prepare("UPDATE salary_tbl SET status = ?, salary = ? WHERE id = ?");
+        const info = stmt.run(status, salary, id);
+        return info.changes > 0;
     } catch (err) {
-        console.error("Database Update Error:", err);
+        console.error("Payment Error:", err);
         return false;
     }
 });
+
+
+
+ipcMain.handle('get-dashboard-stats', async () => {
+    return dbLogic.getDashboardStats();
+});
+// --- FIX FOR AUTH LEAVES ---
+// main.js
+ipcMain.handle('update-auth-leaves', async (event, { id, count }) => {
+    const stmt = db.prepare("UPDATE salary_tbl SET auth_leaves = ? WHERE id = ? AND status = 'Unpaid'");
+    const info = stmt.run(count, id);
+    return info.changes > 0;
+});
+
+ipcMain.handle('update-availed-leaves', async (event, { id, count }) => {
+    const stmt = db.prepare("UPDATE salary_tbl SET availed_leaves = ? WHERE id = ? AND status = 'Unpaid'");
+    const info = stmt.run(count, id);
+    return info.changes > 0;
+});
+
+
 
 // Reports
 ipcMain.handle('get-status-report', async (event, statusType) => {
@@ -674,6 +708,101 @@ ipcMain.on('open-db-folder', () => {
     const userDataPath = app.getPath('userData');
     shell.openPath(userDataPath); 
 });
+ipcMain.handle('add-expense', async (event, data) => {
+    try {
+        const now = new Date();
+        const month = now.toLocaleString('default', { month: 'long' });
+        const year = now.getFullYear();
+
+        // FIX: Changed 'expense' to 'expence' to match your DB schema in the image
+        const stmt = db.prepare(`
+            INSERT INTO exp_tbl (expence, exp_amount, exp_year, exp_month, created_at) 
+            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+        `);
+        
+        const info = stmt.run(data.expense, data.amount, year, month);
+        return { success: info.changes > 0 };
+    } catch (err) {
+        console.error("Database Error:", err);
+        return { success: false, error: err.message };
+    }
+});
+
+
+ipcMain.handle('get-expense-filters', async () => {
+    try {
+        const months = db.prepare("SELECT DISTINCT exp_month FROM exp_tbl").all();
+        const years = db.prepare("SELECT DISTINCT exp_year FROM exp_tbl").all();
+        return { months, years };
+    } catch (err) {
+        return { months: [], years: [] };
+    }
+});
+
+// Update your get-expenses handler to use 'exp_month'
+ipcMain.handle('get-expenses', async (event, filters) => {
+    try {
+        let query = "SELECT * FROM exp_tbl WHERE 1=1";
+        const params = [];
+
+        if (filters.month) {
+            query += " AND exp_month = ?"; // Changed from exp_mon
+            params.push(filters.month);
+        }
+        if (filters.year) {
+            query += " AND exp_year = ?";
+            params.push(filters.year);
+        }
+        return db.prepare(query).all(...params);
+    } catch (err) {
+        console.error(err);
+        return [];
+    }
+});
+//datesheet
+// main.js
+
+ipcMain.handle('get-datesheet', async (event, filters) => {
+    try {
+        // Use the function from your database.js which already has the correct JOINs
+        return dbLogic.getDateSheetRecords(filters); 
+    } catch (err) {
+        console.error(err);
+        return [];
+    }
+});
+
+ipcMain.handle('add-datesheet', async (event, data) => {
+    try {
+        dbLogic.addDateSheetPaper(data);
+        return { success: true };
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle('update-datesheet', async (event, data) => {
+    try {
+        dbLogic.updateDateSheetPaper(data);
+        return { success: true };
+    } catch (err) {
+        console.error(err);
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle('delete-datesheet', async (event, id) => {
+    try {
+        // This will now find the function exported from database.js
+        dbLogic.deleteDateSheetPaper(id); 
+        return { success: true };
+    } catch (err) {
+        console.error(err);
+        return { success: false, error: err.message };
+    }
+});
+
+
 
 // --- LIFECYCLE ---
 app.whenReady().then(() => {

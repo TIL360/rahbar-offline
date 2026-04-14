@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Strict Security Policy for Offline Apps -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
-    <title>EduPulse Pro | School Management 2026</title>
+    <title>EduPulse  || 2026</title>
     
     <style>
         :root {
@@ -182,28 +182,33 @@
         <a href="student/student_list.html" class="nav-btn">👨‍🎓 Students</a>
         <a href="fee/feelist.html" class="nav-btn">💰 Fee</a>
         <a href="results/result_entry.html" class="nav-btn">📝 Exams</a>
-        <a href="staff/staff.html" class="nav-btn">👔 Staff</a>
-        <a href="staff/salary.html" class="nav-btn">💵 Salary</a>
-        <a href="newuser.html" class="nav-btn">⚙️ Roles</a>
+        <!-- Added IDs for Restriction -->
+        <a href="staff/staff.html" class="nav-btn" id="navStaff">👔 Staff</a>
+        <a href="expenses/expense.html" class="nav-btn">🧾 Expenses</a>
+        <a href="newuser.html" class="nav-btn" id="navRoles">⚙️ Roles</a>
     </div>
 
-    <button class="nav-btn logout-btn" onclick="window.authAPI.openDBFolder()">📁 DB Folder</button>
+    <!-- Added ID for Restriction -->
+    <button id="btnDB" class="nav-btn logout-btn" onclick="window.authAPI.openDBFolder()">📁 DB Folder</button>
     <button onclick="logout()" class="nav-btn logout-btn">🚪 Logout</button>
 </div>
 
 <div class="main">
     <div class="header-row">
         <div class="welcome-header">
+            
+            <h1 style="color: rgb(95, 10, 231); text-shadow: #64748b 2px 2px 0px 0px ;">RAHBAR PUBLIC SCHOOL & COLLEGE</h1>
             <h2 id="welcomeText">Welcome, Administrator</h2>
             <p id="currentDate"></p>
         </div>
-        <div class="status-badge">
+        <div class="status-badge" style="background:white; padding:10px 20px; border-radius:30px; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.05)">
             🟢 Offline System 
         </div>
     </div>
-             <div id="license-badge" style="background: white; padding: 10px 20px; border-radius: 30px; font-size: 16px; font-weight: 600; color: var(--medical-teal);">
-            License: <span id="license-info"></span>
-        </div>
+
+    <div id="license-badge" style="background: white; padding: 15px 25px; border-radius: 12px; font-size: 16px; font-weight: 600; color: var(--medical-teal); margin-bottom:30px; box-shadow:0 2px 4px rgba(0,0,0,0.05)">
+        License Status: <span id="license-info">Validity Period: </span>
+    </div>
 
     <div class="stats-row">
         <div class="stat-card">
@@ -219,36 +224,47 @@
             <div class="stat-info"><small>Balance</small><div id="statBalance">0</div></div>
         </div>
         <div class="stat-card">
+            <div class="icon-box" style="background:#d1fae5">💵</div>
+            <div class="stat-info"><small>Fee Received</small><div id="statFeeReceived">0</div></div>
+        </div>
+        <!-- Added ID to restrict Salaries -->
+        <div class="stat-card" id="cardSalaries">
             <div class="icon-box" style="background:#fee2e2">💸</div>
             <div class="stat-info"><small>Salaries</small><div id="statSalaries">0</div></div>
+        </div>
+        <div class="stat-card">
+           <div class="icon-box" style="background:#fde68a">🧾</div>
+           <div class="stat-info"><small>Expenses</small><div id="statExpenses">0</div></div>
         </div>
     </div>
 
     <h3>Quick Actions</h3>
     <div class="action-grid">
         <a href="results/result_entry.html" class="action-card">
-            <div style="font-size: 2rem">📄</div>
-            <span>Exams</span>
-            <p style="font-size:0.8rem; color:gray">Manage Marksheets</p>
+            <div style="font-size: 2.5rem; margin-bottom:10px">📄</div>
+            <span style="font-weight:bold; display:block">Exams</span>
+            <p style="font-size:0.85rem; color:#64748b; margin-top:5px">Manage Marksheets</p>
         </a>
         <a href="fee/feelist.html" class="action-card">
-            <div style="font-size: 2rem">💳</div>
-            <span>Fees</span>
-            <p style="font-size:0.8rem; color:gray">Collect Payments</p>
+            <div style="font-size: 2.5rem; margin-bottom:10px">💳</div>
+            <span style="font-weight:bold; display:block">Fees</span>
+            <p style="font-size:0.85rem; color:#64748b; margin-top:5px">Collect Payments</p>
         </a>
         <a href="student/stu_personal_info.html" class="action-card">
-            <div style="font-size: 2rem">👤</div>
-            <span>Enroll</span>
-            <p style="font-size:0.8rem; color:gray">New Admissions</p>
+            <div style="font-size: 2.5rem; margin-bottom:10px">👤</div>
+            <span style="font-weight:bold; display:block">Enroll</span>
+            <p style="font-size:0.85rem; color:#64748b; margin-top:5px">New Admissions</p>
         </a>
     </div>
 </div>
 
 <script>
+    // 1. Set Date Immediately
     document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-US', { 
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
     });
 
+    // 2. Load Stats from API
     async function loadStats() {
         try {
             if (window.api && window.api.getDashboardStats) {
@@ -257,36 +273,51 @@
                 document.getElementById('statReceivables').innerText = stats.receivables || 0;
                 document.getElementById('statBalance').innerText = stats.balance || 0;
                 document.getElementById('statSalaries').innerText = stats.salaries || 0;
+                document.getElementById('statFeeReceived').innerText = stats.feeReceived || 0;
+                document.getElementById('statExpenses').innerText = stats.expenses || 0;
             }
         } catch (e) { console.log("Stats fetch skipped."); }
     }
 
+    // 3. Load License from API
     async function updateLicenseDisplay() {
         try {
             if (window.api && window.api.getLicenseStatus) {
                 const status = await window.api.getLicenseStatus();
-                document.getElementById('license-info').innerText = `| ${status}`;
+                if(status) document.getElementById('license-info').innerText = status;
             }
         } catch (e) { console.log("License check skipped."); }
     }
 
+    // 4. Logout Logic
     function logout() {
         sessionStorage.clear();
         window.location.href = "login.html";
     }
 
+    // 5. Initialize Page with Role Checks
     document.addEventListener('DOMContentLoaded', () => {
-        const user = JSON.parse(sessionStorage.getItem('currentUser') || '{"username":"Admin"}');
+        // Fallback to "User1" if no user is found in session
+        const user = JSON.parse(sessionStorage.getItem('currentUser') || '{"username":"User1"}');
         document.getElementById('welcomeText').innerText = `Welcome, ${user.username}`;
+        
+        // --- ROLE BASED ACCESS CONTROL (RBAC) ---
+        const isAdmin = user.username.toLowerCase() === 'admin';
+
+        if (!isAdmin) {
+            // Hide Sidebar Restrictions
+            document.getElementById('navStaff').style.display = 'none';
+            document.getElementById('navRoles').style.display = 'none';
+            document.getElementById('btnDB').style.display = 'none';
+
+            // Hide Dashboard Statistics Restriction
+            const salaryCard = document.getElementById('cardSalaries');
+            if (salaryCard) salaryCard.style.display = 'none';
+        }
+
         loadStats();
         updateLicenseDisplay();
     });
-async function updateLicenseDisplay() {
-    try {
-        const status = await window.api.getLicenseStatus();
-        if(status) document.getElementById('license-info').innerText = status;
-    } catch (e) {}
-}
 </script>
 </body>
 </html>

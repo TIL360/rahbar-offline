@@ -1,56 +1,97 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <title>Student Progress Reports - KIPS</title>
-    <style>
-        :root { --primary: #2e08b6; --bg: #f4f6f9; --school-red: #b01e1e; }
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #000; }
-        .nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .report-sheet { width: 210mm; height: 297mm; padding: 15mm; margin: 0 auto 40px auto; background: white; border: 1px solid #ddd; box-sizing: border-box; position: relative; contain: layout; }
-        .school-header { text-align: center; margin-bottom: 15px; border-bottom: 2px solid #000; padding-bottom: 5px; }
-        .school-header h1 { margin: 0; color: var(--school-red); font-size: 26px; text-transform: uppercase; }
-        .school-header p { margin: 2px 0; font-size: 13px; font-weight: bold; }
-        .student-id-section { display: flex; justify-content: space-between; margin-bottom: 10px; }
-        .info-col { flex: 1; }
-        .info-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 8px; }
-        .info-field { border-bottom: 1px solid #000; padding: 4px 2px; font-size: 13px; }
-        .label { font-weight: bold; }
-        .student-photo { width: 85px; height: 85px; object-fit: cover; border-radius: 50%; border: 2px solid #000; background: #008080; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 1px solid #000; padding: 6px; text-align: center; font-size: 13px; }
-        th { background: #f2f2f2; }
-        .subject-col { text-align: left; padding-left: 10px; }
-        .remarks-box { border: 2px dashed #333; padding: 10px; margin-top: 15px; min-height: 80px; position: relative; }
-        .remarks-text { font-style: italic; font-size: 18px; white-space: pre-wrap; }
-        .edit-icon { cursor: pointer; margin-left: 10px; font-size: 18px; }
-        .remarks-edit-container { display: none; margin-top: 10px; }
-        .remarks-input { width: 100%; height: 80px; font-size: 14px; }
-        .footer-sigs { position: absolute; bottom: 20mm; left: 15mm; right: 15mm; display: flex; justify-content: space-between; font-weight: bold; }
-        .sig-line { border-top: 1px solid #000; width: 170px; text-align: center; padding-top: 5px; font-size: 13px; }
-        @media print { 
-            body { background: none; padding: 0; } .nav-header { display: none; } 
-            .report-sheet { margin: 0; border: none; page-break-after: always; } 
-            @page { size: A4; margin: 0; } 
-        }
-    </style>
+<meta charset="UTF-8" />
+<title>Progress Reports</title>
+<style>
+:root { --primary: #2e08b6; --bg: #f4f6f9; --school-red: #b01e1e; }
+body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #000; }
+.nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+
+/* Main Report Sheet */
+.report-sheet { 
+    width: 210mm; 
+    height: 297mm; 
+    padding: 15mm; 
+    margin: 0 auto 40px auto; 
+    background: white; 
+    border: 1px solid #ddd; 
+    box-sizing: border-box; 
+    position: relative; 
+    contain: layout; 
+    overflow: hidden;
+    /* CRITICAL FIX: Forces PDF to show background images/watermarks */
+    -webkit-print-color-adjust: exact; 
+    print-color-adjust: exact;
+}
+
+/* Watermark Styling */
+.report-sheet::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 450px;
+    height: 450px;
+    background-image: url('../../images/logo.png');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    opacity: 0.1; /* Adjusted transparency */
+    z-index: 0;
+    pointer-events: none;
+}
+
+/* Content Container */
+.school-header, .student-id-section, table, .remarks-box, .footer-sigs {
+    position: relative;
+    z-index: 1;
+}
+
+.school-header { text-align: center; margin-bottom: 15px; border-bottom: 2px solid #000; padding-bottom: 5px; }
+.school-header h1 { margin: 0; color: var(--school-red); font-size: 26px; text-transform: uppercase; display: flex; align-items: center; justify-content: center; }
+.school-header p { margin: 2px 0; font-size: 13px; font-weight: bold; }
+
+.small-logo { height: 50px; margin-right: 12px; }
+
+.student-id-section { display: flex; justify-content: space-between; margin-bottom: 10px; }
+.info-col { flex: 1; }
+.info-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+.info-field { border-bottom: 1px solid #000; padding: 4px 2px; font-size: 13px; }
+.student-photo { width: 85px; height: 85px; object-fit: cover; border-radius: 50%; border: 2px solid #000; background: #008080; }
+
+table { width: 100%; border-collapse: collapse; margin-top: 10px; background: transparent; }
+th, td { border: 1px solid #000; padding: 6px; text-align: center; font-size: 13px; }
+th { background: #f2f2f2 !important; -webkit-print-color-adjust: exact; }
+.subject-col { text-align: left; padding-left: 10px; }
+
+.remarks-box { border: 2px dashed #333; padding: 10px; margin-top: 15px; min-height: 80px; position: relative; }
+.footer-sigs { position: absolute; bottom: 20mm; left: 15mm; right: 15mm; display: flex; justify-content: space-between; font-weight: bold; }
+.sig-line { border-top: 1px solid #000; width: 170px; text-align: center; padding-top: 5px; font-size: 13px; }
+
+@media print { 
+    body { background: none; padding: 0; } 
+    .nav-header { display: none; } 
+    .report-sheet { margin: 0; border: none; page-break-after: always; } 
+    @page { size: A4; margin: 0; } 
+}
+</style>
 </head>
 <body>
 <div class="nav-header">
     <h2 id="recordCounter">Loading Reports...</h2>
     <div>
         <span id="loadProgress" style="margin-right:15px; font-weight:bold; color:var(--school-red);"></span>
-        <button class="btn" id="btnPrint" onclick="startExport()" disabled style="background:var(--primary); color:white; padding:10px 20px; border-radius:4px; cursor:pointer;">Save as PDF</button>
-        <button class="btn" onclick="window.location.href='result.html'" style="background:#6c757d; color:white; padding:10px 20px; border-radius:4px; cursor:pointer; margin-left:10px;">Back</button>
+        <button id="btnPrint" onclick="startExport()" disabled style="background:var(--primary); color:white; padding:10px 20px; border-radius:4px; cursor:pointer;">Print to PDF</button>
+        <button onclick="window.location.href='result.html'" style="background:#6c757d; color:white; padding:10px 20px; border-radius:4px; cursor:pointer; margin-left:10px;">Back</button>
     </div>
 </div>
+
 <div id="reportsContainer"></div>
 
 <script>
-async function startExport() {
-    // Triggers the native system print dialog as configured in your main.js
-    await window.api.saveToPdf();
-}
+async function startExport() { await window.api.saveToPdf(); }
 
 function getGrade(score, max) {
     if (!max) return '-'; const p = (score / max) * 100;
@@ -68,28 +109,20 @@ async function loadReports() {
     const urlParams = new URLSearchParams(window.location.search);
     const examId = urlParams.get('examId');
     const className = urlParams.get('className');
-    const studentId = urlParams.get('studentId'); // Capture single student ID
+    const studentId = urlParams.get('studentId');
 
     try {
         let data = [];
-        
-        // LOGIC SWITCH: Single Student vs. Full Class
         if (studentId) {
             const singleRecord = await window.api.getStudentProgress(studentId);
-            if (singleRecord) {
-                // Ensure data is always an array for the renderBatch loop
-                data = [singleRecord];
-                recordCounter.innerText = `Report for: ${singleRecord.student_name}`;
-            }
+            if (singleRecord) { data = [singleRecord]; recordCounter.innerText = `Report for: ${singleRecord.student_name}`; }
         } else {
-            const filters = { examId, className };
-            data = await window.api.getAllStudentProgress(filters);
+            data = await window.api.getAllStudentProgress({ examId, className });
             recordCounter.innerText = `Total Records: ${data.length}`;
         }
 
         if (!data || data.length === 0) { 
-            container.innerHTML = `<h2 style='text-align:center;'>No records found.</h2>`; 
-            recordCounter.innerText = "Total Records: 0";
+            container.innerHTML = "<h2 style='text-align:center;'>No records found.</h2>"; 
             return; 
         }
 
@@ -107,14 +140,17 @@ async function loadReports() {
             const end = Math.min(index + batchSize, data.length);
             for (; index < end; index++) {
                 const s = data[index];
-                
-                // --- Your existing rendering logic remains exactly the same ---
                 let rows = ''; let tObt = 0; let tMax = 0; let failed = 0;
+                
                 subjects.filter(sub => s[sub.set] > 0).forEach(sub => {
                     const ob = s[sub.obt] || 0; const mx = s[sub.set] || 0;
                     tObt += ob; tMax += mx; if ((ob/mx)*100 < 40) failed++;
                     rows += `<tr><td class="subject-col">${sub.id}</td><td>${mx}</td><td>${ob}</td><td>${Math.round((ob/mx)*100)}%</td><td>${getGrade(ob, mx)}</td></tr>`;
                 });
+
+                const totalPercentage = tMax > 0 ? Math.round((tObt/tMax)*100) : 0;
+                const totalGrade = getGrade(tObt, tMax);
+                const finalResult = failed > 1 ? 'Detained' : 'Promoted';
 
                 let imgSrc = `https://ui-avatars.com{encodeURIComponent(s.student_name)}&background=008080&color=fff`;
                 if (s.picture_path) { 
@@ -125,20 +161,19 @@ async function loadReports() {
                 sheet.className = 'report-sheet';
                 sheet.innerHTML = `
                     <div class="school-header">
-                        <h1>KIPS SCHOOL SYSTEM</h1>
-                        <p>Address: City Branch, Near Main Road</p>
-                        <p>Contact: 0300-1234567 | 0321-7654321</p>
+                        <h1><img src="../../images/logo.png" class="small-logo">RAHBAR PUBLIC SCHOOL & COLLEGE</h1>
+                        <p>Garhi Habibullah || 0315-1436832</p>
                     </div>
                     <div class="student-id-section">
                         <div class="info-col">
                             <div class="info-row">
-                                <div class="info-field"><span class="label">Name:</span> ${s.student_name}</div>
-                                <div class="info-field"><span class="label">Roll No:</span> ${s.roll_no || '___'}</div>
-                                <div class="info-field"><span class="label">Reg No:</span> ${s.registration_no}</div>
+                                <div class="info-field">Name: <strong>${s.student_name}</strong></div>
+                                <div class="info-field">Roll No: <strong>${s.roll_no || '___'}</strong></div>
+                                <div class="info-field">Reg No: <strong>${s.registration_no}</strong></div>
                             </div>
                             <div class="info-row">
-                                <div class="info-field"><span class="label">Father:</span> ${s.father_name || '___________'}</div>
-                                <div class="info-field"><span class="label">Class:</span> ${s.class} - ${s.section || 'A'}</div>
+                                <div class="info-field">Father: <strong>${s.father_name || '___________'}</strong></div>
+                                <div class="info-field">Class: <strong>${s.class} - ${s.section || 'A'}</strong></div>
                             </div>
                         </div>
                         <img src="${imgSrc}" class="student-photo" />
@@ -146,19 +181,19 @@ async function loadReports() {
                     <table>
                         <thead><tr><th>Subject</th><th>Total</th><th>Obt</th><th>%</th><th>Grade</th></tr></thead>
                         <tbody>${rows}</tbody>
-                        <tfoot><tr style="font-weight:bold; background:#f2f2f2;"><td>TOTAL</td><td>${tMax}</td><td>${tObt}</td><td>${Math.round((tObt/tMax)*100)}%</td><td>${getGrade(tObt, tMax)}</td></tr></tfoot>
+                        <tfoot><tr style="font-weight:bold; background:#f2f2f2;"><td>TOTAL</td><td>${tMax}</td><td>${tObt}</td><td>${totalPercentage}%</td><td>${totalGrade}</td></tr></tfoot>
                     </table>
-                    <p style="margin-top:10px;"><strong>Result: ${failed > 1 ? 'Detained' : 'Promoted'}</strong> | <strong>Position: ${s.position || '___'}</strong></p>
+                    <div style="margin-top:20px; display: flex; border: 2px solid #333; padding: 10px; background: #f9f9f9; -webkit-print-color-adjust: exact;">
+                        <div style="text-align:center; flex:1;"><div>RESULT</div><div style="font-size:18px; font-weight:bold; color:${failed > 1 ? '#c0392b' : '#27ae60'}">${finalResult}</div></div>
+                        <div style="text-align:center; flex:1; border-left:1px solid #ccc;"><div>POSITION</div><div style="font-size:22px; font-weight:bold;">${s.position ? Math.round(s.position) : '___'}</div></div>
+                        <div style="text-align:center; flex:1; border-left:1px solid #ccc;"><div>PERCENTAGE</div><div style="font-size:22px; font-weight:bold;">${totalPercentage}%</div></div>
+                        <div style="text-align:center; flex:1; border-left:1px solid #ccc;"><div>GRADE</div><div style="font-size:22px; font-weight:bold;">${totalGrade}</div></div>
+                    </div>
                     <div class="remarks-box">
-                        <div style="display:flex; align-items:center;">
-                            <div class="label" style="text-decoration:underline;">General Report:</div>
-                            <div class="edit-icon" onclick="enableEdit('${s.result_id}')">✏️</div>
-                        </div>
-                        <div id="display-${s.result_id}">
-                            <div id="display-text-${s.result_id}">${s.remarks || 'No remarks entered.'}</div>
-                        </div>
-                        <div class="remarks-edit-container" id="edit-container-${s.result_id}">
-                            <textarea id="input-${s.result_id}" class="remarks-input">${s.remarks || ''}</textarea>
+                        <div style="font-weight:bold; text-decoration:underline;">General Report: <span onclick="enableEdit('${s.result_id}')" style="cursor:pointer">✏️</span></div>
+                        <div id="display-text-${s.result_id}" style="font-style:italic; font-size:16px;">${s.remarks || 'No remarks entered.'}</div>
+                        <div id="edit-container-${s.result_id}" style="display:none; margin-top:5px;">
+                            <textarea id="input-${s.result_id}" style="width:100%; height:50px;">${s.remarks || ''}</textarea>
                             <button onclick="saveRemarks('${s.result_id}')">Save</button>
                             <button onclick="cancelEdit('${s.result_id}')">Cancel</button>
                         </div>
@@ -170,41 +205,23 @@ async function loadReports() {
                     </div>`;
                 container.appendChild(sheet);
             }
-            
             progText.innerText = `Loaded: ${Math.round((index/data.length)*100)}%`;
             if (index < data.length) setTimeout(renderBatch, 5);
             else { printBtn.disabled = false; progText.innerText = "Ready!"; }
         }
         renderBatch();
-    } catch (err) { 
-        console.error(err);
-        container.innerHTML = "Error loading reports."; 
+    } catch (err) { container.innerHTML = "Error loading reports."; }
+}
+
+function enableEdit(id) { document.getElementById(`edit-container-${id}`).style.display = 'block'; }
+function cancelEdit(id) { document.getElementById(`edit-container-${id}`).style.display = 'none'; }
+async function saveRemarks(id) {
+    const val = document.getElementById(`input-${id}`).value;
+    if (await window.api.updateResultRemarks(id, val)) {
+        document.getElementById(`display-text-${id}`).innerText = val || 'No remarks entered.';
+        cancelEdit(id);
     }
 }
-
-function enableEdit(resultId) {
-    document.getElementById(`display-${resultId}`).style.display = 'none';
-    document.getElementById(`edit-container-${resultId}`).style.display = 'block';
-}
-
-function cancelEdit(resultId) {
-    document.getElementById(`display-${resultId}`).style.display = 'block';
-    document.getElementById(`edit-container-${resultId}`).style.display = 'none';
-}
-
-async function saveRemarks(resultId) {
-    const newRemarks = document.getElementById(`input-${resultId}`).value;
-    try {
-        const success = await window.api.updateResultRemarks(resultId, newRemarks);
-        if (success) {
-            document.getElementById(`display-text-${resultId}`).innerText = newRemarks || 'No remarks entered.';
-            cancelEdit(resultId);
-        } else {
-            alert('Failed to save remarks.');
-        }
-    } catch (err) { alert('Error saving remarks.'); }
-}
-
 window.onload = loadReports;
 </script>
 </body>

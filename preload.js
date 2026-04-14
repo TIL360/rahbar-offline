@@ -29,7 +29,10 @@ updateResultRemarks: (resultId, remarks) => ipcRenderer.invoke('update-result-re
     // Navigation
     changePage: (page) => ipcRenderer.send('change-page', page),
 // In Preload.js
-updateAvailedLeaves: (id, count) => ipcRenderer.invoke('update-availed-leaves', { id, count }),
+// preload.js
+updateAvailedLeaves: (data) => ipcRenderer.invoke('update-availed-leaves', data),
+updateAuthLeaves: (data) => ipcRenderer.invoke('update-auth-leaves', data),
+
 
 
     // Class Management
@@ -75,7 +78,6 @@ generateBulkFees: () => ipcRenderer.invoke('generate-bulk-fees'),
     getDropdownData: () => ipcRenderer.invoke('get-dropdown-data'),
     // FIXED: added 'data' as the second argument below
     updateSetMarks: (data) => ipcRenderer.invoke('update-set-marks', data),
-     getDropdownData: () => ipcRenderer.invoke('get-dropdown-data'),
     getReportData: (data) => ipcRenderer.invoke('get-report-data', data),
      // 5. Saving Individual Student Marks (The missing function)
     updateStudentMarks: (data) => ipcRenderer.invoke('update-student-marks', data),
@@ -84,6 +86,20 @@ recalculatePositions: (data) => ipcRenderer.invoke('recalculate-positions', data
 // Add this inside the 'api' block in preload.js
 // Inside preload.js
 getAllStudentProgress: (filters) => ipcRenderer.invoke('get-all-student-progress', filters),
+//expenses
+ getExpenses: (filters) => ipcRenderer.invoke('get-expenses', filters),
+    addExpense: (data) => ipcRenderer.invoke('add-expense', data),
+    getExpenseFilters: () => ipcRenderer.invoke('get-expense-filters'),
+    deleteExpense: (id) => ipcRenderer.invoke('delete-expense', id),
+    //datesheet
+  // Inside contextBridge.exposeInMainWorld('api', { ... })
+addDateSheet: (data) => ipcRenderer.invoke('add-datesheet', data),
+getDateSheet: (filters) => ipcRenderer.invoke('get-datesheet', filters),
+updateDateSheet: (data) => ipcRenderer.invoke('update-datesheet', data), // Add this line
+deleteDateSheet: (id) => ipcRenderer.invoke('delete-datesheet', id),
+
+
+
 
 getStudentProgress: (id) => ipcRenderer.invoke('get-student-progress', id),
 bulkUpdateFees: (data) => ipcRenderer.invoke('bulk-update-fees', data),

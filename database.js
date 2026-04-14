@@ -54,8 +54,35 @@ const initializeDB = () => {
        db.exec(`CREATE TABLE IF NOT EXISTS exams (
     exam_id INTEGER PRIMARY KEY AUTOINCREMENT,
     exam_name TEXT UNIQUE,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    exp_amount REAL DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    exp_month TEXT,
+    exp_year TEXT
 )`);
+
+//expense table
+  db.exec(`CREATE TABLE IF NOT EXISTS exp_tbl (
+        exp_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        expence TEXT,
+        exp_amount REAL,
+        exp_year INTEGER,
+        exp_month TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+// Add this to your initializeDB function in database.js
+// Inside initializeDB function in database.js
+db.exec(`CREATE TABLE IF NOT EXISTS datesheet (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    subject TEXT,
+    exam_date DATE,
+    exam_year TEXT,
+    exam_id INTEGER,
+    class_id INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
+    FOREIGN KEY (exam_id) REFERENCES exams(exam_id) ON DELETE CASCADE
+)`);
+
 
 db.exec(`CREATE TABLE IF NOT EXISTS result (
     result_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -315,9 +342,18 @@ const updateAvailedLeaves = (id, count) => {
         WHERE id = ? AND status = 'Unpaid'
     `).run(count, id);
 };
-
-const getSalaries = (month, year) => db.prepare("SELECT * FROM salary_tbl WHERE salary_month = ? AND salary_year = ?").all(month, year);
 // database.js
+const getSalaries = (month, year) => {
+    return db.prepare(`
+        SELECT 
+            s.*, 
+            st.designation 
+        FROM salary_tbl s
+        JOIN staff_tbl st ON s.staff_id = st.id
+        WHERE s.salary_month = ? AND s.salary_year = ?
+    `).all(month, year);
+};
+
 const updateSalaryStatus = (id, status, paidSalary) => {
     // Added 'salary = ?' to the query
     return db.prepare("UPDATE salary_tbl SET status = ?, salary = ? WHERE id = ?")
@@ -330,9 +366,11 @@ const getDashboardStats = () => {
     const year = now.getFullYear().toString();
     const activeStudents = db.prepare("SELECT count(*) as count FROM students WHERE status = 'active'").get().count;
     const receivables = db.prepare("SELECT SUM(total_fee) as total FROM fee_tbl WHERE invoice_month = ? AND invoice_year = ?").get(month, year).total || 0;
+    const feeReceived = db.prepare("SELECT SUM(collection) as total FROM fee_tbl WHERE invoice_month = ? AND invoice_year = ?").get(month, year).total || 0;
     const balance = db.prepare("SELECT SUM(balance) as total FROM fee_tbl WHERE invoice_month = ? AND invoice_year = ?").get(month, year).total || 0;
     const salaries = db.prepare("SELECT SUM(salary) as total FROM salary_tbl WHERE salary_month = ? AND salary_year = ?").get(month, year).total || 0;
-    return { activeStudents, receivables, balance, salaries };
+    const expenses = db.prepare("SELECT SUM(exp_amount) as total FROM exp_tbl WHERE exp_month = ? AND exp_year = ?").get(month, year).total || 0;
+    return { activeStudents, receivables, balance, salaries, feeReceived, expenses };
 };
 
 // Add these to Database.js
@@ -420,7 +458,80 @@ const getDateWiseReport = (selectedDate) => {
 };
 
 
+const addDateSheetPaper = (data) => {
+    const sql = `INSERT INTO datesheet (subject, exam_date, exam_year, exam_id, class_id) 
+                 VALUES (?, ?, ?, ?, ?)`;
+    return db.prepare(sql).run(
+        data.subject, 
+        data.exam_date, 
+        data.exam_year, 
+        data.exam_id, 
+        data.class_id
+    );
+};
+const updateDateSheetPaper = (data) => {
+    const sql = `UPDATE datesheet 
+                 SET subject = ?, exam_date = ?, exam_year = ?, exam_id = ?, class_id = ? 
+                 WHERE id = ?`;
+    return db.prepare(sql).run(
+        data.subject, 
+        data.exam_date, 
+        data.exam_year, 
+        data.exam_id, 
+        data.class_id,
+        data.id
+    );
+};
 
+
+
+// Inside initializeDB function in database.js
+db.exec(`CREATE TABLE IF NOT EXISTS datesheet (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    subject TEXT,
+    exam_date DATE,
+    exam_year TEXT,
+    exam_name TEXT,
+    class_id INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE
+)`);
+
+// Function to fetch DateSheet with Class Names joined
+// Function to fetch DateSheet with Class Names joined
+// Change your query in Database.js to this:
+const getDateSheetRecords = (filters = {}) => {
+    let sql = `
+        SELECT ds.*, c.class_name, e.exam_name 
+        FROM datesheet ds
+        JOIN classes c ON ds.class_id = c.id
+        JOIN exams e ON ds.exam_id = e.exam_id
+        WHERE 1=1
+    `;
+    const params = [];
+
+    if (filters.year) {
+        sql += ` AND ds.exam_year = ?`;
+        params.push(filters.year);
+    }
+    if (filters.exam_id) {
+        sql += ` AND ds.exam_id = ?`;
+        params.push(filters.exam_id);
+    }
+    if (filters.class_id) {
+        sql += ` AND ds.class_id = ?`;
+        params.push(filters.class_id);
+    }
+
+    sql += ` ORDER BY ds.exam_date ASC`;
+    return db.prepare(sql).all(...params);
+};
+
+
+const deleteDateSheetPaper = (id) => {
+    const sql = `DELETE FROM datesheet WHERE id = ?`;
+    return db.prepare(sql).run(id);
+};
 
 
 module.exports = {
@@ -431,5 +542,6 @@ module.exports = {
     updateStaff, deleteStaff, initiateSalary, getSalaries, updateSalaryStatus, 
     getDashboardStats, getUniqueInvoiceMonths, getUniqueInvoiceYears, getClassesFee,
     getActiveClasses, initiateExamForClasses, getStudentFeeHistory, updateAvailedLeaves,
-    getFeeReportByStatus, getDateWiseReport, deleteFeeRecordsByStudent, deleteResultsByStudent
+    getFeeReportByStatus, getDateWiseReport, deleteFeeRecordsByStudent, deleteResultsByStudent,
+    addDateSheetPaper, getDateSheetRecords, updateDateSheetPaper, deleteDateSheetPaper
 };

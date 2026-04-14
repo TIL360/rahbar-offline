@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: safe-file: https://ui-avatars.com;" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Student Management List</title>
+<title>Student Management</title>
 <link rel="stylesheet" href="../../assets/css/all.min.css" />
 <style>
 :root { --primary: #4f46e5; --bg-gray: #f8fafc; --border: #e2e8f0; --success: #10b981; --danger: #ef4444; }
@@ -74,13 +74,13 @@ td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
 
 <div class="page-container">
     <div class="top-nav">
-        <button class="btn" onclick="window.api.changePage('components/dashboard.html')">Dashboard</button>
+        <button class="btn" title="Navigate to dashboard" onclick="window.api.changePage('components/dashboard.html')">Dashboard</button>
         <div style="display:flex; gap:10px;">
-            <button id="statusToggleBtn" class="btn btn-active-view" onclick="toggleStatus()">
+            <button id="statusToggleBtn"  title="Switch button to see active / inactive records" class="btn btn-active-view" onclick="toggleStatus()">
                 <span>Showing: ACTIVE</span>
                 <span id="viewCount" class="count-badge">0</span>
             </button>
-            <button class="btn" style="background:#4f46e5; color:white;" onclick="window.api.changePage('components/student/stu_personal_info.html')">Add New Student</button>
+            <button class="btn" style="background:#4f46e5; color:white;" onclick="window.api.changePage('components/student/stu_personal_info.html')"  title="Add new record ">Add New Student</button>
         </div>
     </div>
 
@@ -90,13 +90,13 @@ td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
             <input type="text" id="studentSearch" placeholder="Search by Registration No or Name and press Enter Button..." onkeyup="filterTable()" />
         </div>
         <div class="btn-row">
-            <button class="btn" style="background:#6366f1; color:white;" onclick="generateBulkInvoices()"><i class="fas fa-print"></i> Generate Bulk Invoices</button>
+            <button class="btn" style="background:#6366f1; color:white;" onclick="generateBulkInvoices()" title="Generate invoices of all student for current month"><i class="fas fa-print"></i> Generate Bulk Invoices</button>
             <div style="flex-grow:1"></div>
             <input type="date" id="reportDate" style="padding:8px; border:1px solid #ccc; border-radius:4px" />
-            <button class="btn" style="background:#4f46e5; color:white;" onclick="generateDateReport()">Date Report</button>
-            <button class="btn" style="background:#10b981; color:white;" onclick="generateStatusReport('paid')">Full Paid List</button>
-            <button class="btn" style="background:#f59e0b; color:white;" onclick="generateStatusReport('partial')">Partial Paid List</button>
-            <button class="btn" style="background:#ef4444; color:white;" onclick="generateStatusReport('unpaid')">Unpaid List</button>
+            <button class="btn" style="background:#4f46e5; color:white;" onclick="generateDateReport()" title="Select date and click here to see date wise report">Date Report</button>
+            <button class="btn" style="background:#10b981; color:white;" onclick="generateStatusReport('paid')" title="Report of those students who paid their dues in complete">Full Paid List</button>
+            <button class="btn" style="background:#f59e0b; color:white;" onclick="generateStatusReport('partial')" title="Report of those students who partially paid thier dues">Partial Paid List</button>
+            <button class="btn" style="background:#ef4444; color:white;" onclick="generateStatusReport('unpaid')" title="Report of those students did not pay fee" >Unpaid List</button>
         </div>
     </div>
 
@@ -207,7 +207,7 @@ async function renderTable() {
     }
     for (const s of items) {
         const imgSrc = s.picture_path ? await window.api.getImageUrl(s.picture_path) : `https://ui-avatars.com{encodeURIComponent(s.student_name)}&background=random`;
-        tbody.innerHTML += `<tr><td><img src="${imgSrc}" class="avatar" /></td><td><strong>${s.registration_no}</strong></td><td>${s.student_name}</td><td>${s.father_name}</td><td>${s.current_class}</td><td>${formatDate(s.dob)}</td><td>${s.mobile}</td><td>${s.whatsapp}</td><td>${s.monthly_fee}</td><td><button class="action-btn" onclick="viewHistory(${s.id})">👁️</button><button class="action-btn" onclick="editStudent(${s.id})">✏️</button><button class="action-btn" onclick="generateFee(${s.id})">💰</button><button class="action-btn" style="color:red" onclick="deleteStudent(${s.id})">🗑️</button></td></tr>`;
+        tbody.innerHTML += `<tr><td><img src="${imgSrc}" class="avatar" /></td><td><strong>${s.registration_no}</strong></td><td>${s.student_name}</td><td>${s.father_name}</td><td>${s.current_class}</td><td>${formatDate(s.dob)}</td><td>${s.mobile}</td><td>${s.whatsapp}</td><td>${s.monthly_fee}</td><td><button title="View Fee History for this student" class="action-btn" onclick="viewHistory(${s.id})">👁️</button><button class="action-btn" onclick="editStudent(${s.id})" title="Edit this record">✏️</button><button class="action-btn" onclick="generateFee(${s.id})" title="Generate current month invoice for this record">💰</button><button class="action-btn" style="color:red" onclick="deleteStudent(${s.id})" title="Delete this record">🗑️</button></td></tr>`;
     }
     renderPagination();
 }
@@ -258,7 +258,12 @@ function renderReportModalPage(title) {
     const start = (reportPage - 1) * reportRecordsPerPage;
     const items = currentReportData.slice(start, start + reportRecordsPerPage);
     items.forEach(r => {
-        tbody.innerHTML += `<tr><td>${r.registration_no}</td><td>${r.student_name}</td><td>${r.current_class}</td><td>Rs. ${(r.total_fee || 0).toLocaleString()}</td><td>Rs. ${(r.collection || 0).toLocaleString()}</td><td>Rs. ${(r.balance || 0).toLocaleString()}</td></tr>`;
+        tbody.innerHTML += `<tr><td>${r.registration_no}</td>
+            <td>${r.student_name}</td>
+            <td>${r.current_class}</td>
+            <td>Rs. ${(r.total_fee || 0).toLocaleString()}</td>
+            <td>Rs. ${(r.collection || 0).toLocaleString()}</td>
+            <td>Rs. ${(r.balance || 0).toLocaleString()}</td></tr>`;
     });
     renderModalPagination(title);
     openModal(title);
@@ -284,7 +289,12 @@ function printFullReport() {
 
     let fullHTML = '';
     currentReportData.forEach(r => {
-        fullHTML += `<tr><td>${r.registration_no}</td><td>${r.student_name}</td><td>${r.current_class}</td><td>Rs. ${(r.total_fee || 0).toLocaleString()}</td><td>Rs. ${(r.collection || 0).toLocaleString()}</td><td>Rs. ${(r.balance || 0).toLocaleString()}</td></tr>`;
+        fullHTML += `<tr><td>${r.registration_no}</td>
+            <td>${r.student_name}</td>
+            <td>${r.current_class}</td>
+            <td>Rs. ${(r.total_fee || 0).toLocaleString()}</td>
+            <td>Rs. ${(r.collection || 0).toLocaleString()}</td>
+            <td>Rs. ${(r.balance || 0).toLocaleString()}</td></tr>`;
     });
 
     setTimeout(() => {

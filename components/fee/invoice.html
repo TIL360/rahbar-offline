@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Fee Invoices - Professional Layout</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoices </title>
     <style>
         /* Base Styling */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #f0f0f0; color: #333; }
@@ -47,7 +48,29 @@
         
         .footer { margin-top: auto; display: flex; justify-content: space-between; padding-top: 15px; }
         .sig-line { border-top: 1.2px solid #000; width: 75px; text-align: center; font-size: 9px; padding-top: 3px; }
-.refresh-btn { background: white; border: 1px solid #ddd; padding: 8px 15px; border-radius: 5px; cursor: pointer; color: black; }
+
+        .no-print { text-align:center; padding: 15px; background: #2c3e50; color:white; }
+        .btn-print { padding: 10px 25px; cursor: pointer; font-weight: bold; border-radius: 5px; border:none; background:#27ae60; color:white; margin-bottom: 5px; }
+        .btn-close { background: #e74c3c; border: none; padding: 10px 25px; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; }
+   
+        /* Small Logo next to Name */
+        .small-logo {
+            height: 28px; /* Matches text height */
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+           /* Watermark Logo Styling */
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%; /* Adjust size to match the image */
+            opacity: 0.12; /* Faint enough for readability */
+            z-index: 0;
+            pointer-events: none;
+        }
+
 
         /* Print Specifics */
         @media print {
@@ -60,120 +83,148 @@
 </head>
 <body>
 
-    <div class="no-print" style="text-align:center; padding: 15px; background: #2c3e50; color:white;">
-        <button onclick="window.print()" style="padding: 10px 25px; cursor: pointer; font-weight: bold; border-radius: 5px; border:none; background:#27ae60; color:white;">🖨️ Click to Print Invoices</button>
-        <p id="counterNote" style="margin: 8px 0 0 0; font-size: 13px; opacity: 0.9;"></p><br/>
-         <!-- <a href="../fee/feelist.html" class="back-link" style="background-color: #eee;">← Fee List</a> -->
-        <button class="refresh-btn" onclick="window.location.href='../fee/feelist.html'">Back</button>
+<div class="no-print">
+    <button class="btn-print" onclick="window.print()">🖨️ Click to Print Invoices</button>
+    <button class="btn-close" onclick="window.close()">Close Window</button>
+    <p id="counterNote" style="margin: 8px 0 0 0; font-size: 13px; opacity: 0.9;">Initializing...</p>
+</div>
 
-        </div>
-
-    <div id="invoiceContainer">
-        <!-- Student Pages will be injected here -->
+<div id="invoiceContainer">
+    <!-- Student Pages will be injected here -->
+    <div style="text-align: center; padding: 100px; color: #777;">
+        <h3>Loading Invoice Data...</h3>
     </div>
+</div>
 
-    <script>
-    async function init() {
-        const idString = localStorage.getItem('print_ids');
-        if (!idString) {
-            document.getElementById('invoiceContainer').innerHTML = "<h2 style='text-align:center; padding:50px;'>No Data Found.</h2>";
-            return;
-        }
+<script>
+async function init() {
+    const container = document.getElementById('invoiceContainer');
+    const counterNote = document.getElementById('counterNote');
 
-        const ids = idString.split(',');
-        const container = document.getElementById('invoiceContainer');
-        container.innerHTML = ''; // Reset
-        document.getElementById('counterNote').innerText = `Total Students in Batch: ${ids.length}`;
+    // 1. Safety Check: Is the Electron Bridge (window.api) loaded?
+    if (!window.api || !window.api.getFeeRecordById) {
+        container.innerHTML = `
+            <div style="text-align:center; padding:50px; color:#c0392b;">
+                <h2>API Error</h2>
+                <p>The database connection (window.api) was not found in this window.</p>
+                <p>Ensure your Electron main process has 'preload' enabled for child windows.</p>
+            </div>`;
+        return;
+    }
 
-        for (let id of ids) {
-            try {
-                const data = await window.api.getFeeRecordById(id);
-                if (data) renderStudentPage(data, container);
-            } catch (err) {
-                console.error("Error loading record:", id, err);
+    // 2. Get IDs from URL
+    const params = new URLSearchParams(window.location.search);
+    const idString = params.get('ids') || params.get('id');
+
+    if (!idString) {
+        container.innerHTML = "<h2 style='text-align:center; padding:50px;'>No Record IDs provided in URL.</h2>";
+        return;
+    }
+
+    const ids = idString.split(',');
+    container.innerHTML = ''; // Clear loading message
+    counterNote.innerText = `Total Students in Batch: ${ids.length}`;
+
+    // 3. Loop through and fetch records
+    for (let id of ids) {
+        try {
+            const data = await window.api.getFeeRecordById(parseInt(id));
+            if (data) {
+                renderStudentPage(data, container);
+            } else {
+                console.warn(`No data returned for ID: ${id}`);
             }
+        } catch (err) {
+            console.error(`Error loading record ID ${id}:`, err);
         }
     }
 
-    function renderStudentPage(data, container) {
-        const copies = ['Bank Copy', 'Office Copy', 'Student Copy'];
-        const page = document.createElement('div');
-        page.className = 'page-wrapper';
-
-        // Calculations
-        const monthly = data.monthly_fee || 0;
-        const admission = data.adm_fee || 0;
-        const exam = data.exam_fee || 0;
-        const misc = data.misc_fee || 0;
-        const lab = data.lab_fee || 0;
-        const arrears = data.previous_arrears || 0;
-        
-        const currentTotal = monthly + admission + exam + misc + lab;
-        const netPayable = currentTotal + arrears;
-        const fineAmount = 200; // Set your late fee amount here
-        const netAfterDue = netPayable + fineAmount;
-
-        // Date Logic
-        const dueDate = `10th ${data.invoice_month} ${data.invoice_year}`;
-
-        page.innerHTML = copies.map(title => `
-            <div class="copy-section">
-                <span class="copy-label">${title}</span>
-                <div class="header">
-                    <p class="school-name">YOUR SCHOOL NAME</p>
-                    <p style="margin:2px; font-size:9px;">Address Line 1, City Name | Phone: 000-0000000</p>
-                </div>
-
-                <table class="info-table">
-                    <tr><td><strong>Inv #:</strong> ${data.id}</td><td style="text-align:right"><strong>Date:</strong> ${data.invoice_month} ${data.invoice_year}</td></tr>
-                    <tr><td colspan="2"><strong>Student:</strong> ${data.student_name}</td></tr>
-                    <tr><td><strong>Reg:</strong> ${data.registration_no}</td><td><strong>Class:</strong> ${data.current_class} (${data.section || 'A'})</td></tr>
-                </table>
-
-                <table class="fee-table">
-                    <thead>
-                        <tr><th>Description</th><th>Amount</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>Monthly Tuition Fee</td><td>${monthly.toLocaleString()}</td></tr>
-                        <tr><td>Admission Fee</td><td>${admission.toLocaleString()}</td></tr>
-                        <tr><td>Examination Fee</td><td>${exam.toLocaleString()}</td></tr>
-                        <tr><td>Lab Charges</td><td>${lab.toLocaleString()}</td></tr>
-                        <tr><td>Miscellaneous Fee</td><td>${misc.toLocaleString()}</td></tr>
-                        <tr class="total-row"><td>Current Month Total</td><td>${currentTotal.toLocaleString()}</td></tr>
-                        <tr><td>Previous Arrears</td><td>${arrears.toLocaleString()}</td></tr>
-                        
-                        <tr class="net-payable">
-                            <td>NET PAYABLE (By ${dueDate})</td>
-                            <td>Rs. ${netPayable.toLocaleString()}</td>
-                        </tr>
-
-                        <tr class="fine-row">
-                            <td>Late Fine (After 10th)</td>
-                            <td>${fineAmount.toLocaleString()}</td>
-                        </tr>
-                        <tr class="total-row">
-                            <td>NET AFTER DUE DATE</td>
-                            <td>Rs. ${netAfterDue.toLocaleString()}</td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <div style="margin-top:10px; font-size:9px; border:1px solid #ccc; padding:4px;">
-                    <strong>Note:</strong> Please pay your dues before the 10th to avoid late fines.
-                </div>
-
-                <div class="footer">
-                    <div class="sig-line">Parent/Bank</div>
-                    <div class="sig-line">Cashier/Principal</div>
-                </div>
-            </div>
-        `).join('');
-
-        container.appendChild(page);
+    if (container.innerHTML === '') {
+        container.innerHTML = "<h2 style='text-align:center; padding:50px;'>Records could not be loaded from database.</h2>";
     }
+}
 
-    window.onload = init;
+function renderStudentPage(data, container) {
+    const copies = ['Bank Copy', 'Office Copy', 'Student Copy'];
+    const page = document.createElement('div');
+    page.className = 'page-wrapper';
+
+    // Calculations
+    const monthly = Number(data.monthly_fee) || 0;
+    const admission = Number(data.adm_fee) || 0;
+    const exam = Number(data.exam_fee) || 0;
+    const misc = Number(data.misc_fee) || 0;
+    const lab = Number(data.lab_fee) || 0;
+    const arrears = Number(data.previous_arrears) || 0;
+    
+    const currentTotal = monthly + admission + exam + misc + lab;
+    const netPayable = currentTotal + arrears;
+    const fineAmount = 200; 
+    const netAfterDue = netPayable + fineAmount;
+    const dueDate = `10th ${data.invoice_month} ${data.invoice_year}`;
+
+    page.innerHTML = copies.map(title => `
+        <div class="copy-section">
+                        <img src="../../images/logo.png" class="watermark">
+            <span class="copy-label">${title}</span>
+            <div class="header">
+                <p class="school-name">
+                                        <img src="../../images/logo.png" class="small-logo">
+                    RAHBAR PUBLIC SCHOOL & COLLEGE</p>
+                <p style="margin:2px; font-size:9px;">Garhi Habibullah | Phone: 0315-1436832</p>
+            </div>
+            <table class="info-table">
+                <tr>
+                    <td><strong>Inv #:</strong> ${data.id}</td>
+                    <td style="text-align:right"><strong>Month:</strong> ${data.invoice_month}</td>
+                </tr>
+                <tr>
+                    <td colspan="2"><strong>Student:</strong> ${data.student_name}</td>
+                    <td colspan="2"><strong>Father:</strong> ${data.father_name}</td>
+                </tr>
+                <tr>
+                    <td><strong>Reg:</strong> ${data.registration_no}</td>
+                    <td><strong>Class:</strong> ${data.current_class} (${data.section || 'N/A'})</td>
+                </tr>
+            </table>
+            <table class="fee-table">
+                <thead><tr><th>Description</th><th>Amount</th></tr></thead>
+                <tbody>
+                    <tr><td>Monthly Tuition Fee</td><td>${monthly.toLocaleString()}</td></tr>
+                    ${admission > 0 ? `<tr><td>Admission Fee</td><td>${admission.toLocaleString()}</td></tr>` : ''}
+                    ${exam > 0 ? `<tr><td>Examination Fee</td><td>${exam.toLocaleString()}</td></tr>` : ''}
+                    ${lab > 0 ? `<tr><td>Lab Charges</td><td>${lab.toLocaleString()}</td></tr>` : ''}
+                    ${misc > 0 ? `<tr><td>Miscellaneous Fee</td><td>${misc.toLocaleString()}</td></tr>` : ''}
+                    <tr class="total-row"><td>Current Month Total</td><td>${currentTotal.toLocaleString()}</td></tr>
+                    <tr><td>Previous Arrears</td><td>${arrears.toLocaleString()}</td></tr>
+                    <tr class="net-payable">
+                        <td>NET PAYABLE (By ${dueDate})</td>
+                        <td>Rs. ${netPayable.toLocaleString()}</td>
+                    </tr>
+                    <tr class="fine-row">
+                        <td>Late Fine (After 10th)</td>
+                        <td>${fineAmount.toLocaleString()}</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td>NET AFTER DUE DATE</td>
+                        <td>Rs. ${netAfterDue.toLocaleString()}</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div style="margin-top:10px; font-size:10px; border:1px solid #ccc; padding:4px;">
+                <strong>Note:</strong> Please submit fee by the 10th to avoid late fee fine 
+            </div>
+            <div class="footer">
+                <div class="sig-line">Parent/Bank</div>
+                <div class="sig-line">Cashier/Principal</div>
+            </div>
+        </div>
+    `).join('');
+    container.appendChild(page);
+}
+
+// Start the process
+window.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>

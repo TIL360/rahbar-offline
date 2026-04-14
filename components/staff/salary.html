@@ -3,196 +3,309 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Staff Salary Records</title>
+    <title>Staff Salary Management</title>
     <style>
-        :root { --primary: #2c3e50; --accent: #3498db; --bg: #f4f7f6; --white: #ffffff; --success: #27ae60; --danger: #e74c3c; --warning: #f39c12; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #333; }
+        :root { --primary: #2c3e50; --accent: #3498db; --bg: #f8f9fa; --success: #27ae60; --danger: #e74c3c; --white: #ffffff; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 30px; color: #333; }
         
-        .back-link { text-decoration: none; color: var(--accent); font-weight: bold; margin-bottom: 15px; display: inline-block; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        /* Dashboard Header */
+        .header-card { background: var(--white); padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
+        .filter-group { display: flex; gap: 15px; align-items: center; }
+        select, input[type="number"] { padding: 10px; border: 1px solid #ddd; border-radius: 6px; outline: none; }
+        .btn-apply { background: var(--primary); color: white; border: none; padding: 10px 25px; border-radius: 6px; cursor: pointer; transition: 0.3s; }
         
-        /* Filter Section */
-        .filter-container { background: var(--white); padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; gap: 15px; align-items: center; margin-bottom: 20px; }
-        .filter-group { display: flex; flex-direction: column; gap: 5px; }
-        .filter-group label { font-size: 11px; color: #666; font-weight: bold; text-transform: uppercase; }
-        select, input { padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-width: 120px; }
-        
-        .btn-filter { background: var(--accent); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; align-self: flex-end; }
-
         /* Table Styling */
-        .table-card { background: var(--white); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); overflow: hidden; }
-        table { width: 100%; border-collapse: collapse; text-align: left; }
-        th { background: var(--primary); color: white; padding: 12px; font-size: 0.8rem; text-transform: uppercase; }
-        td { padding: 12px; border-bottom: 1px solid #eee; font-size: 0.9rem; }
-        
-        .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
-        .paid { background: #d4edda; color: #155724; }
-        .unpaid { background: #fff3cd; color: #856404; }
+        .table-container { background: var(--white); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #fdfdfd; padding: 18px; text-align: left; font-size: 13px; color: #7f8c8d; text-transform: uppercase; border-bottom: 2px solid #f4f4f4; }
+        td { padding: 18px; border-bottom: 1px solid #f9f9f9; font-size: 14px; }
 
-        .btn-pay { background: var(--success); color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .btn-pay:hover { opacity: 0.9; }
+        /* Status & Buttons */
+        .status-badge { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+        .unpaid { background: #fff4e5; color: #d35400; }
+        .paid { background: #e6fffa; color: #2ecc71; }
+        .btn-pay { background: var(--success); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
+        .btn-slip { background: var(--accent); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
+        .edit-icon { cursor: pointer; color: var(--accent); margin-left: 8px; font-size: 14px; border: none; background: none; }
+
+        /* Inline Editing */
+        .edit-group { display: flex; gap: 5px; align-items: center; }
+        .edit-group input { width: 50px; padding: 4px; border: 1px solid var(--accent); border-radius: 4px; }
+        .btn-ok { background: var(--success); color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+
+        /* --- MODAL & PRINT STYLES --- */
+        #slipModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); align-items: center; justify-content: center; z-index: 1000; overflow-y: auto; padding: 20px; }
+        .modal-content { background: white; width: 850px; padding: 20px; border-radius: 8px; position: relative; }
+        
+        .slip-wrapper { border: 2px solid #000; padding: 25px; background: #fff; margin-bottom: 20px; }
+        .slip-header { text-align: center; border-bottom: 2px solid #000; margin-bottom: 15px; padding-bottom: 10px; }
+        .slip-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+        .slip-table td { padding: 8px; border: 1px solid #ddd; }
+        .net-pay-box { background: #000; color: #fff; padding: 12px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; margin-top: 10px; }
+        .slip-footer { display: flex; justify-content: space-between; margin-top: 40px; }
+        .sig-line { border-top: 1.5px solid #000; width: 200px; text-align: center; padding-top: 5px; font-size: 12px; font-weight: bold; }
+
+        @media print {
+            body * { visibility: hidden; }
+            #slip-printable, #slip-printable * { visibility: visible; }
+            #slip-printable { position: absolute; left: 0; top: 0; width: 100%; }
+            .no-print { display: none !important; }
+            @page { size: A4; margin: 1.5cm; }
+            .slip-wrapper { border: 2px solid #000 !important; } /* Ensure border prints */
+        }
     </style>
 </head>
 <body>
 
-    <a href="../dashboard.html" class="back-link">← Back to Dashboard</a>
-    
-    <div class="header">
-        <h2>Staff Salary Records</h2>
-        <div id="salarySummary" style="font-weight: bold; color: var(--primary);"></div>
-    </div>
-
-    <!-- Filters -->
-    <div class="filter-container">
+    <div class="header-card">
+        <div>
+            <h2 style="margin:0;">Staff Salary Portal</h2>
+            <p id="salarySummary" style="margin:5px 0 0; color:var(--accent); font-weight:bold;"></p>
+        </div>
         <div class="filter-group">
-            <label>Month</label>
             <select id="filterMonth">
                 <option value="January">January</option><option value="February">February</option>
-                <option value="March">March</option><option value="April">April</option>
+                <option value="March">March</option><option value="April" selected>April</option>
                 <option value="May">May</option><option value="June">June</option>
                 <option value="July">July</option><option value="August">August</option>
                 <option value="September">September</option><option value="October">October</option>
                 <option value="November">November</option><option value="December">December</option>
             </select>
+            <input type="number" id="filterYear" value="2026" style="width: 80px;">
+            <button class="btn-apply" title="Select boxes to view staff salaries" onclick="loadSalaryData()">Apply Filters</button>
+            <button class="btn-apply" title="Go to staff page" onclick="window.location.href='staff.html'">Staff</button>
         </div>
-        <div class="filter-group">
-            <label>Year</label>
-            <input type="number" id="filterYear" value="2026">
-        </div>
-        <button class="btn-filter" onclick="loadSalaryData()">Apply Filters</button>
     </div>
 
-    <!-- Table -->
-    <div class="table-card">
+    <div class="table-container">
         <table>
             <thead>
                 <tr>
-                   <th>Staff Name</th>
-<th>Basic Salary</th>
-<th>Auth Leaves</th>
-<th>Availed</th>
-<th>Total Salary</th>
-<th>Status</th>
-<th>Action</th>
-
+                    <th>Staff Member</th>
+                    <th>Basic Salary</th>
+                    <th>Auth Leaves</th>
+                    <th>Availed</th>
+                    <th>Net Payable</th>
+                    <th>Status</th>
+                    <th>Action</th>
                 </tr>
             </thead>
-            <tbody id="salaryTableBody">
-                <!-- Records will be loaded here -->
-            </tbody>
+            <tbody id="salaryTableBody"></tbody>
         </table>
     </div>
 
-<script>
-    // 1. GLOBAL VARIABLE: Defined outside functions so everyone can access it
-    let records = []; 
+    <!-- Salary Slip Modal (A4 Dual Layout) -->
+    <div id="slipModal">
+        <div class="modal-content">
+            <div id="slip-printable">
+                <!-- COPY 1: SCHOOL COPY -->
+                <div class="slip-wrapper">
+                    <div class="slip-header">
+                        <h2 style="margin:0; letter-spacing: 1px;">RAHBAR PUBLIC SCHOOL & COLLEGE</h2>
+                        <p style="margin:3px 0; font-size:12px; font-weight:bold;">Garhi Habibullah || 0315-1436832</p>
+                        <p style="margin:3px 0; font-size:12px; font-weight:bold;">OFFICE COPY / SCHOOL RECORD</p>
+                        <h3 style="margin:5px 0; text-decoration: underline;">Salary Statement - <span class="p-period"></span></h3>
+                    </div>
+                    <table class="slip-table">
+                        <tr><td><strong>Staff Name:</strong></td><td class="p-name"></td><td><strong>Designation:</strong></td><td class="p-designation">Staff Member</td></tr>
+                        <tr><td><strong>Basic Pay:</strong></td><td>Rs. <span class="p-basic"></span></td><td><strong>Allowances:</strong></td><td>Rs. <span class="p-allow"></span></td></tr>
+                        <tr><td><strong>Leaves (A/V):</strong></td><td class="p-leaves"></td><td><strong>Deduction:</strong></td><td style="color:red;">Rs. <span class="p-ded"></span></td></tr>
+                    </table>
+                    <div class="net-pay-box"><span>NET PAID:</span><span class="p-total"></span></div>
+                    <div class="slip-footer">
+                        <div class="sig-line">Staff Signature</div>
+                        <div class="sig-line">Principal / Accounts</div>
+                    </div>
+                </div>
 
-    document.addEventListener('DOMContentLoaded', () => {
-        const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-        document.getElementById('filterMonth').value = months[new Date().getMonth()];
-        document.getElementById('filterYear').value = new Date().getFullYear();
-        loadSalaryData();
-    });
+                <!-- CUT LINE -->
+                <div class="no-print" style="border-top: 2px dashed #999; margin: 30px 0; text-align:center;"><small>✂ Separate Slips Here</small></div>
+                <div style="border-top: 1px dashed #000; margin: 20px 0;" class="print-only"></div>
+
+                <!-- COPY 2: STAFF COPY -->
+                <div class="slip-wrapper">
+                    <div class="slip-header">
+                        <h2 style="margin:0; letter-spacing: 1px;">RAHBAR PUBLIC SCHOOL & COLLEGE</h2>
+                        <p style="margin:3px 0; font-size:12px; font-weight:bold;">Garhi Habibullah || 0315-1436832</p>
+                        <p style="margin:3px 0; font-size:12px; font-weight:bold;">EMPLOYEE COPY</p>
+                        <h3 style="margin:5px 0; text-decoration: underline;">Salary Statement - <span class="p-period"></span></h3>
+                    </div>
+                    <table class="slip-table">
+                        <tr><td><strong>Staff Name:</strong></td><td class="p-name"></td><td><strong>Designation:</strong></td><td class="p-designation">Staff Member</td></tr>
+                        <tr><td><strong>Basic Pay:</strong></td><td>Rs. <span class="p-basic"></span></td><td><strong>Allowances:</strong></td><td>Rs. <span class="p-allow"></span></td></tr>
+                        <tr><td><strong>Leaves (A/V):</strong></td><td class="p-leaves"></td><td><strong>Deduction:</strong></td><td style="color:red;">Rs. <span class="p-ded"></span></td></tr>
+                    </table>
+                    <div class="net-pay-box"><span>NET PAID:</span><span class="p-total"></span></div>
+                    <div class="slip-footer">
+                        <div class="sig-line">Staff Signature</div>
+                        <div class="sig-line">Principal / Accounts</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="no-print" style="margin-top:20px; display:flex; gap:10px;">
+                <button onclick="window.print()" style="flex:2; padding:12px; background:var(--success); color:white; border:none; border-radius:6px; cursor:pointer; font-weight:bold;">🖨️ Print Slips (A4)</button>
+                <button onclick="closeModal()" style="flex:1; padding:12px; background:#eee; border:none; border-radius:6px; cursor:pointer;">Close</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    let records = [];
+
+    document.addEventListener('DOMContentLoaded', loadSalaryData);
 
     async function loadSalaryData() {
-        const month = document.getElementById('filterMonth').value;
-        const year = document.getElementById('filterYear').value;
+        // IDs must match your HTML: filterMonth and filterYear
+        const m = document.getElementById('filterMonth').value;
+        const y = document.getElementById('filterYear').value;
         
-        // Update the global variable
-        records = await window.api.getSalaries(month, year);
+        // Fetching data from your bridge
+        records = await window.api.getSalaries(m, y);
         
-        const tableBody = document.getElementById('salaryTableBody');
-        tableBody.innerHTML = '';
-        let totalPayableSum = 0;
+        const body = document.getElementById('salaryTableBody');
+        body.innerHTML = '';
+        let totalSum = 0;
 
         records.forEach(r => {
             const isUnpaid = r.status === 'Unpaid';
             
-            // --- CALCULATION LOGIC ---
-            const dailyRate = r.salary / 30;
-            const extraLeaves = Math.max(0, (r.availed_leaves || 0) - (r.auth_leaves || 0));
-            const deduction = extraLeaves * dailyRate;
+            // 1. FIX BASIC SALARY: Use staff base pay (r.salary in this context refers to monthly record)
+            // Ensure we use a numeric fallback to prevent Rs. 0
+            const basicSalary = parseFloat(r.salary) || 0; 
+            const allowance = parseFloat(r.allowance) || 0;
+            const auth = parseInt(r.auth_leaves) || 0;
+            const availed = parseInt(r.availed_leaves) || 0;
 
-            // Adjusted Basic Salary (e.g., 4000 - 133 = 3867)
-            const adjustedSalary = r.salary - deduction; 
-            
-            // Final Total (Adjusted Basic + Allowance)
-            const finalTotal = adjustedSalary + (r.allowance || 0);
-            
-            totalPayableSum += finalTotal;
+            let displayNet = 0;
 
-            tableBody.innerHTML += `
+            if (isUnpaid) {
+                // Live Calculation for Unpaid staff
+                const daily = basicSalary / 30;
+                const extra = Math.max(0, availed - auth);
+                const deduction = Math.round(extra * daily);
+                displayNet = (basicSalary - deduction) + allowance;
+            } else {
+                // For Paid mode, pull the net amount stored in the monthly record
+                displayNet = parseFloat(r.salary) || 0;
+            }
+            
+            totalSum += displayNet;
+
+            // 2. STABLE TABLE TEMPLATE: Exactly 7 <td> cells
+            body.innerHTML += `
             <tr>
+                <!-- 1. Staff Member -->
                 <td><strong>${r.name}</strong></td>
-                <td>Rs. ${Math.round(adjustedSalary).toLocaleString()}</td> 
-                <td>${r.auth_leaves || 0}</td>
+                
+                <!-- 2. Basic Salary -->
+                <td>Rs. ${basicSalary.toLocaleString()}</td>
+                
+                <!-- 3. Auth Leaves -->
                 <td>
-                    <div id="display-group-${r.id}">
-                        <span id="val-${r.id}">${r.availed_leaves || 0}</span> 
-                        ${isUnpaid ? `<button onclick="showEdit(${r.id})" style="border:none; background:none; cursor:pointer;">✏️</button>` : ''}
+                    <div id="auth-display-${r.id}">
+                        ${auth} ${isUnpaid ? `<button class="edit-icon" onclick="toggleEdit('auth', ${r.id})">✏️</button>` : ''}
                     </div>
-                    <div id="edit-group-${r.id}" style="display:none;">
-                        <input type="number" id="input-${r.id}" value="${r.availed_leaves || 0}" style="width:50px; padding:2px;">
-                        <button onclick="saveLeaves(${r.id})" style="background:var(--success); color:white; border:none; padding:2px 5px; border-radius:3px; cursor:pointer;">ok</button>
+                    <div id="auth-edit-${r.id}" class="edit-group" style="display:none;">
+                        <input type="number" style="width:50px" id="auth-input-${r.id}" value="${auth}">
+                        <button class="btn-ok" onclick="saveAuth(${r.id})">ok</button>
                     </div>
                 </td>
-                <td style="font-weight:bold; color: ${deduction > 0 ? 'var(--danger)' : 'inherit'}">
-                    Rs. ${Math.round(finalTotal).toLocaleString()}
-                    ${deduction > 0 ? `<br><small style="color:var(--danger); font-weight:normal;">(Ded: Rs. ${Math.round(deduction)})</small>` : ''}
-                </td>
-                <td><span class="status-badge ${r.status.toLowerCase()}">${r.status}</span></td>
+                
+                <!-- 4. Availed -->
                 <td>
-                    ${isUnpaid ? `<button class="btn-pay" onclick="markAsPaid(${r.id})">💰 Pay Now</button>` : `✅ Paid`}
+                    <div id="avail-display-${r.id}">
+                        ${availed} ${isUnpaid ? `<button class="edit-icon" onclick="toggleEdit('avail', ${r.id})">✏️</button>` : ''}
+                    </div>
+                    <div id="avail-edit-${r.id}" class="edit-group" style="display:none;">
+                        <input type="number" style="width:50px" id="avail-input-${r.id}" value="${availed}">
+                        <button class="btn-ok" onclick="saveAvail(${r.id})">ok</button>
+                    </div>
+                </td>
+                
+                <!-- 5. Net Payable -->
+                <td style="font-weight:bold; color:#0077b6">Rs. ${Math.round(displayNet).toLocaleString()}</td>
+                
+                <!-- 6. Status -->
+                <td>
+                    <span class="status-badge ${r.status.toLowerCase()}" 
+                          style="color: ${isUnpaid ? '#d35400' : '#2ecc71'}; font-weight: bold;">
+                        ${r.status}
+                    </span>
+                </td>
+                
+                <!-- 7. Action -->
+                <td>
+                    ${isUnpaid ? 
+                        `<button class="btn-pay" onclick="markAsPaid(${r.id}, ${Math.round(displayNet)})">💰 Pay Now</button>` : 
+                        `<button class="btn-slip" onclick="openSlip(${r.id})">📄 Slip</button>`}
                 </td>
             </tr>`;
         });
-
-        document.getElementById('salarySummary').innerText = `Total Payable: Rs. ${Math.round(totalPayableSum).toLocaleString()}`;
-    }
-
-    function showEdit(id) {
-        document.getElementById(`display-group-${id}`).style.display = 'none';
-        document.getElementById(`edit-group-${id}`).style.display = 'block';
-        document.getElementById(`input-${id}`).focus();
-    }
-
-    async function saveLeaves(id) {
-        const newVal = document.getElementById(`input-${id}`).value;
-        const success = await window.api.updateAvailedLeaves(id, parseFloat(newVal));
-        if (success) {
-            loadSalaryData(); 
-        } else {
-            alert("Error: Update failed. Record may already be Paid.");
-        }
-    }
-
-    async function markAsPaid(id) {
-        // Find the specific staff record from the global array
-        const row = records.find(r => r.id === id);
         
-        if (!row) {
-            alert("Error: Record not found.");
-            return;
-        }
+        document.getElementById('salarySummary').innerText = `Total Payable: Rs. ${Math.round(totalSum).toLocaleString()}`;
+    }
 
-        // Calculate the final basic salary to save in DB
-        const dailyRate = row.salary / 30;
-        const extraLeaves = Math.max(0, (row.availed_leaves || 0) - (row.auth_leaves || 0));
-        const deduction = extraLeaves * dailyRate;
-        const finalSalaryToStore = Math.round(row.salary - deduction);
+    function toggleEdit(type, id) {
+        document.getElementById(`${type}-display-${id}`).style.display = 'none';
+        document.getElementById(`${type}-edit-${id}`).style.display = 'flex';
+    }
 
-        if(confirm(`Confirm payment for ${row.name}?\nFinal Basic Salary: Rs. ${finalSalaryToStore}`)) {
-            // PASSING: ID, Status, and the NEW Salary
-            const success = await window.api.updateSalaryStatus(id, 'Paid', finalSalaryToStore);
+    async function saveAuth(id) {
+        const count = parseFloat(document.getElementById(`auth-input-${id}`).value);
+        const success = await window.api.updateAuthLeaves({ id, count });
+        if(success) loadSalaryData();
+    }
+
+    async function saveAvail(id) {
+        const count = parseFloat(document.getElementById(`avail-input-${id}`).value);
+        const success = await window.api.updateAvailedLeaves({ id, count });
+        if(success) loadSalaryData();
+    }
+
+    // --- FIX FOR THE PAYMENT ERROR ---
+    async function markAsPaid(id, calculatedNet) {
+        const r = records.find(x => x.id === id);
+        if(confirm(`Confirm payment for ${r.name} of Rs. ${calculatedNet}?`)) {
+            /* 
+               The RangeError happened because you weren't passing the object 
+               expected by ipcMain.handle('update-salary-status') on Page 25.
+            */
+            const success = await window.api.updateSalaryStatus(
+                id,        // Parameter 1: ID
+                'Paid',    // Parameter 2: Status
+                calculatedNet // Parameter 3: Salary
+            );
             
-            if (success) {
-                loadSalaryData(); 
-            } else {
-                alert("Payment failed. Please check the main process console.");
-            }
+            if (success) loadSalaryData();
+            else alert("Error updating payment status.");
         }
     }
+
+    function openSlip(id) {
+        const r = records.find(x => x.id === id);
+        const basic = parseFloat(r.salary) || 0;
+        const daily = basic / 30;
+        const extra = Math.max(0, (r.availed_leaves || 0) - (r.auth_leaves || 0));
+        const ded = Math.round(extra * daily);
+        const netTotal = (basic - ded) + (r.allowance || 0);
+        const period = `${document.getElementById('filterMonth').value} ${document.getElementById('filterYear').value}`;
+
+        document.querySelectorAll('.p-period').forEach(e => e.innerText = period);
+        document.querySelectorAll('.p-name').forEach(e => e.innerText = r.name);
+        document.querySelectorAll('.p-designation').forEach(e => e.innerText = r.designation || 'Staff Member');
+        document.querySelectorAll('.p-basic').forEach(e => e.innerText = basic.toLocaleString());
+        document.querySelectorAll('.p-allow').forEach(e => e.innerText = (r.allowance || 0).toLocaleString());
+        document.querySelectorAll('.p-leaves').forEach(e => e.innerText = `${r.auth_leaves || 0} / ${r.availed_leaves || 0}`);
+        document.querySelectorAll('.p-ded').forEach(e => e.innerText = ded.toLocaleString());
+        document.querySelectorAll('.p-total').forEach(e => e.innerText = `Rs. ${Math.round(netTotal).toLocaleString()}`);
+
+        document.getElementById('slipModal').style.display = 'flex';
+    }
+
+    function closeModal() { document.getElementById('slipModal').style.display = 'none'; }
 </script>
+
 
 
 
