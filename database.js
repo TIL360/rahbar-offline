@@ -343,16 +343,19 @@ const updateAvailedLeaves = (id, count) => {
     `).run(count, id);
 };
 // database.js
+// database.js - Updated to include original staff salary
 const getSalaries = (month, year) => {
-    return db.prepare(`
-        SELECT 
-            s.*, 
-            st.designation 
-        FROM salary_tbl s
-        JOIN staff_tbl st ON s.staff_id = st.id
-        WHERE s.salary_month = ? AND s.salary_year = ?
-    `).all(month, year);
+  return db.prepare(`
+    SELECT 
+      s.*, 
+      st.designation,
+      st.salary as original_base 
+    FROM salary_tbl s
+    JOIN staff_tbl st ON s.staff_id = st.id
+    WHERE s.salary_month = ? AND s.salary_year = ?
+  `).all(month, year);
 };
+
 
 const updateSalaryStatus = (id, status, paidSalary) => {
     // Added 'salary = ?' to the query

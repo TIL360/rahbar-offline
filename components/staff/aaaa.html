@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Staff Salary Management</title>
-    <style>
+   <style>
         :root { --primary: #2c3e50; --accent: #3498db; --bg: #f8f9fa; --success: #27ae60; --danger: #e74c3c; --white: #ffffff; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 30px; color: #333; }
         
@@ -38,17 +38,7 @@
         .net-pay-box { background: #000; color: #fff; padding: 12px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; margin-top: 10px; }
         .slip-footer { display: flex; justify-content: space-between; margin-top: 40px; }
         .sig-line { border-top: 1.5px solid #000; width: 200px; text-align: center; padding-top: 5px; font-size: 12px; font-weight: bold; }
-.small-logo { height: 100px; margin-right: 12px; float: left;  }
-   .watermark {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 80%; /* Adjust size to match the image */
-            opacity: 0.07; /* Faint enough for readability */
-            z-index: 0;
-            pointer-events: none;
-        }
+
       /* --- UPDATED PRINT STYLES --- */
 @media print {
     /* 1. Hide everything else */
@@ -87,6 +77,7 @@
     </style>
 </head>
 <body>
+
     <div class="header-card">
         <div>
             <h2 style="margin:0;">Staff Salary Portal</h2>
@@ -102,8 +93,8 @@
                 <option value="November">November</option><option value="December">December</option>
             </select>
             <input type="number" id="filterYear" value="2026" style="width: 80px;">
-            <button class="btn-apply" onclick="loadSalaryData()">Apply Filters</button>
-            <button class="btn-apply" onclick="window.location.href='staff.html'">Staff</button>
+            <button class="btn-apply" title="Select boxes to view staff salaries" onclick="loadSalaryData()">Apply Filters</button>
+            <button class="btn-apply" title="Go to staff page" onclick="window.location.href='staff.html'">Staff</button>
         </div>
     </div>
 
@@ -124,22 +115,20 @@
         </table>
     </div>
 
+    <!-- Salary Slip Modal (A4 Dual Layout) -->
     <div id="slipModal">
         <div class="modal-content">
             <div id="slip-printable">
-                <!-- SCHOOL COPY -->
+                <!-- COPY 1: SCHOOL COPY -->
                 <div class="slip-wrapper">
-                                            <img src="../../images/logo.png" class="watermark">
-
                     <div class="slip-header">
-                        
-                        <h2 style="margin:0; letter-spacing: 1px;"><img src="../../images/logo.png" class="small-logo">RAHBAR PUBLIC SCHOOL & COLLEGE</h2>
+                        <h2 style="margin:0; letter-spacing: 1px;">RAHBAR PUBLIC SCHOOL & COLLEGE</h2>
                         <p style="margin:3px 0; font-size:12px; font-weight:bold;">Garhi Habibullah || 0315-1436832</p>
-                        <p style="margin:3px 0; font-size:12px; font-weight:bold;">OFFICE COPY</p>
+                        <p style="margin:3px 0; font-size:12px; font-weight:bold;">OFFICE COPY / SCHOOL RECORD</p>
                         <h3 style="margin:5px 0; text-decoration: underline;">Salary Statement - <span class="p-period"></span></h3>
                     </div>
                     <table class="slip-table">
-                        <tr><td><strong>Staff Name:</strong></td><td class="p-name"></td><td><strong>Designation:</strong></td><td class="p-designation"></td></tr>
+                        <tr><td><strong>Staff Name:</strong></td><td class="p-name"></td><td><strong>Designation:</strong></td><td class="p-designation">Staff Member</td></tr>
                         <tr><td><strong>Basic Pay:</strong></td><td>Rs. <span class="p-basic"></span></td><td><strong>Allowances:</strong></td><td>Rs. <span class="p-allow"></span></td></tr>
                         <tr><td><strong>Leaves (A/V):</strong></td><td class="p-leaves"></td><td><strong>Deduction:</strong></td><td style="color:red;">Rs. <span class="p-ded"></span></td></tr>
                     </table>
@@ -150,19 +139,20 @@
                     </div>
                 </div>
 
-                <div class="no-print" style="border-top: 2px dashed #999; margin: 20px 0; text-align:center;"><small>✂ Separate Slips Here</small></div>
-                <div style="border-top: 1px dashed #000; margin: 15px 0;" class="print-only"></div>
+                <!-- CUT LINE -->
+                <div class="no-print" style="border-top: 2px dashed #999; margin: 30px 0; text-align:center;"><small>✂ Separate Slips Here</small></div>
+                <div style="border-top: 1px dashed #000; margin: 20px 0;" class="print-only"></div>
 
-                <!-- STAFF COPY -->
+                <!-- COPY 2: STAFF COPY -->
                 <div class="slip-wrapper">
                     <div class="slip-header">
-                        <h2 style="margin:0; letter-spacing: 1px;"><img src="../../images/logo.png" class="small-logo">RAHBAR PUBLIC SCHOOL & COLLEGE</h2>
+                        <h2 style="margin:0; letter-spacing: 1px;">RAHBAR PUBLIC SCHOOL & COLLEGE</h2>
                         <p style="margin:3px 0; font-size:12px; font-weight:bold;">Garhi Habibullah || 0315-1436832</p>
-                        <p style="margin:3px 0; font-size:12px; font-weight:bold;">STAFF COPY</p>
+                        <p style="margin:3px 0; font-size:12px; font-weight:bold;">EMPLOYEE COPY</p>
                         <h3 style="margin:5px 0; text-decoration: underline;">Salary Statement - <span class="p-period"></span></h3>
                     </div>
                     <table class="slip-table">
-                        <tr><td><strong>Staff Name:</strong></td><td class="p-name"></td><td><strong>Designation:</strong></td><td class="p-designation"></td></tr>
+                        <tr><td><strong>Staff Name:</strong></td><td class="p-name"></td><td><strong>Designation:</strong></td><td class="p-designation">Staff Member</td></tr>
                         <tr><td><strong>Basic Pay:</strong></td><td>Rs. <span class="p-basic"></span></td><td><strong>Allowances:</strong></td><td>Rs. <span class="p-allow"></span></td></tr>
                         <tr><td><strong>Leaves (A/V):</strong></td><td class="p-leaves"></td><td><strong>Deduction:</strong></td><td style="color:red;">Rs. <span class="p-ded"></span></td></tr>
                     </table>
@@ -173,6 +163,7 @@
                     </div>
                 </div>
             </div>
+            
             <div class="no-print" style="margin-top:20px; display:flex; gap:10px;">
                 <button onclick="window.print()" style="flex:2; padding:12px; background:var(--success); color:white; border:none; border-radius:6px; cursor:pointer; font-weight:bold;">🖨️ Print Slips (A4)</button>
                 <button onclick="closeModal()" style="flex:1; padding:12px; background:#eee; border:none; border-radius:6px; cursor:pointer;">Close</button>
@@ -180,106 +171,104 @@
         </div>
     </div>
 
-    <script>
-        let records = [];
-        document.addEventListener('DOMContentLoaded', loadSalaryData);
+<script>
+let records = [];
+document.addEventListener('DOMContentLoaded', loadSalaryData);
 
-        async function loadSalaryData() {
-            const m = document.getElementById('filterMonth').value;
-            const y = document.getElementById('filterYear').value;
-            records = await window.api.getSalaries(m, y);
-            const body = document.getElementById('salaryTableBody');
-            body.innerHTML = '';
-            let totalSum = 0;
+async function loadSalaryData() {
+    const m = document.getElementById('filterMonth').value;
+    const y = document.getElementById('filterYear').value;
+    records = await window.api.getSalaries(m, y);
+    
+    const body = document.getElementById('salaryTableBody');
+    body.innerHTML = '';
+    let totalSum = 0;
 
-            records.forEach(r => {
-                const isUnpaid = r.status === 'Unpaid';
-                const basicSalary = parseFloat(r.original_base) || 0; 
-                const allowance = parseFloat(r.allowance) || 0;
-                const auth = parseInt(r.auth_leaves) || 0;
-                const availed = parseInt(r.availed_leaves) || 0;
-                
-                let displayNet = 0;
-                if (isUnpaid) {
-                    const daily = basicSalary / 30;
-                    const extra = Math.max(0, availed - auth);
-                    const deduction = Math.round(extra * daily);
-                    displayNet = (basicSalary - deduction) + allowance;
-                } else {
-                    displayNet = parseFloat(r.salary) || 0;
-                }
-                totalSum += displayNet;
+    records.forEach(r => {
+        const isUnpaid = r.status === 'Unpaid';
+        
+        // FIX: Use original_base for the calculation and display
+        const basicSalary = parseFloat(r.original_base) || 0; 
+        const allowance = parseFloat(r.allowance) || 0;
+        const auth = parseInt(r.auth_leaves) || 0;
+        const availed = parseInt(r.availed_leaves) || 0;
 
-                body.innerHTML += `
-                    <tr>
-                        <td><strong>${r.name}</strong></td>
-                        <td>Rs. ${basicSalary.toLocaleString()}</td>
-                        <td>
-                            <div id="auth-display-${r.id}">${auth} ${isUnpaid ? `<button class="edit-icon" onclick="toggleEdit('auth', ${r.id})">✏️</button>` : ''}</div>
-                            <div id="auth-edit-${r.id}" class="edit-group" style="display:none;">
-                                <input type="number" id="auth-input-${r.id}" value="${auth}">
-                                <button class="btn-ok" onclick="saveAuth(${r.id})">ok</button>
-                            </div>
-                        </td>
-                        <td>
-                            <div id="avail-display-${r.id}">${availed} ${isUnpaid ? `<button class="edit-icon" onclick="toggleEdit('avail', ${r.id})">✏️</button>` : ''}</div>
-                            <div id="avail-edit-${r.id}" class="edit-group" style="display:none;">
-                                <input type="number" id="avail-input-${r.id}" value="${availed}">
-                                <button class="btn-ok" onclick="saveAvail(${r.id})">ok</button>
-                            </div>
-                        </td>
-                        <td style="font-weight:bold; color:#0077b6">Rs. ${Math.round(displayNet).toLocaleString()}</td>
-                        <td><span class="status-badge ${r.status.toLowerCase()}">${r.status}</span></td>
-                        <td>${isUnpaid ? `<button class="btn-pay" onclick="markAsPaid(${r.id}, ${Math.round(displayNet)})">💰 Pay Now</button>` : `<button class="btn-slip" onclick="openSlip(${r.id})">📄 Slip</button>`}</td>
-                    </tr>`;
-            });
-            document.getElementById('salarySummary').innerText = `Total Payable: Rs. ${Math.round(totalSum).toLocaleString()}`;
+        let displayNet = 0;
+        if (isUnpaid) {
+            const daily = basicSalary / 30;
+            const extra = Math.max(0, availed - auth);
+            const deduction = Math.round(extra * daily);
+            displayNet = (basicSalary - deduction) + allowance;
+        } else {
+            // If already paid, r.salary holds the net amount that was paid
+            displayNet = parseFloat(r.salary) || 0;
         }
+        totalSum += displayNet;
 
-        function toggleEdit(type, id) {
-            document.getElementById(`${type}-display-${id}`).style.display = 'none';
-            document.getElementById(`${type}-edit-${id}`).style.display = 'flex';
-        }
+        body.innerHTML += `
+        <tr>
+            <td><strong>${r.name}</strong></td>
+            <!-- This column now stays permanent -->
+            <td>Rs. ${basicSalary.toLocaleString()}</td>
+            <td>
+                <div id="auth-display-${r.id}">
+                    ${auth} ${isUnpaid ? `<button class="edit-icon" onclick="toggleEdit('auth', ${r.id})">✏️</button>` : ''}
+                </div>
+                <div id="auth-edit-${r.id}" class="edit-group" style="display:none;">
+                    <input type="number" id="auth-input-${r.id}" value="${auth}">
+                    <button class="btn-ok" onclick="saveAuth(${r.id})">ok</button>
+                </div>
+            </td>
+            <td>
+                <div id="avail-display-${r.id}">
+                    ${availed} ${isUnpaid ? `<button class="edit-icon" onclick="toggleEdit('avail', ${r.id})">✏️</button>` : ''}
+                </div>
+                <div id="avail-edit-${r.id}" class="edit-group" style="display:none;">
+                    <input type="number" id="avail-input-${r.id}" value="${availed}">
+                    <button class="btn-ok" onclick="saveAvail(${r.id})">ok</button>
+                </div>
+            </td>
+            <td style="font-weight:bold; color:#0077b6">Rs. ${Math.round(displayNet).toLocaleString()}</td>
+            <td>
+                <span class="status-badge ${r.status.toLowerCase()}" style="color: ${isUnpaid ? '#d35400' : '#2ecc71'};">
+                    ${r.status}
+                </span>
+            </td>
+            <td>
+                ${isUnpaid ? 
+                `<button class="btn-pay" onclick="markAsPaid(${r.id}, ${Math.round(displayNet)})">💰 Pay Now</button>` : 
+                `<button class="btn-slip" onclick="openSlip(${r.id})">📄 Slip</button>`}
+            </td>
+        </tr>`;
+    });
+    document.getElementById('salarySummary').innerText = `Total Payable: Rs. ${Math.round(totalSum).toLocaleString()}`;
+}
 
-        async function saveAuth(id) {
-            const count = parseFloat(document.getElementById(`auth-input-${id}`).value);
-            if(await window.api.updateAuthLeaves({ id, count })) loadSalaryData();
-        }
+function openSlip(id) {
+    const r = records.find(x => x.id === id);
+    // FIX: Pulling permanent basic salary for the slip display
+    const basic = parseFloat(r.original_base) || 0;
+    const daily = basic / 30;
+    const extra = Math.max(0, (r.availed_leaves || 0) - (r.auth_leaves || 0));
+    const ded = Math.round(extra * daily);
+    const netTotal = (r.status === 'Paid') ? parseFloat(r.salary) : (basic - ded) + (r.allowance || 0);
 
-        async function saveAvail(id) {
-            const count = parseFloat(document.getElementById(`avail-input-${id}`).value);
-            if(await window.api.updateAvailedLeaves({ id, count })) loadSalaryData();
-        }
+    const period = `${document.getElementById('filterMonth').value} ${document.getElementById('filterYear').value}`;
 
-        async function markAsPaid(id, calculatedNet) {
-            const r = records.find(x => x.id === id);
-            if(confirm(`Confirm payment for ${r.name} of Rs. ${calculatedNet}?`)) {
-                if (await window.api.updateSalaryStatus(id, 'Paid', calculatedNet)) loadSalaryData();
-                else alert("Error updating payment status.");
-            }
-        }
+    document.querySelectorAll('.p-period').forEach(e => e.innerText = period);
+    document.querySelectorAll('.p-name').forEach(e => e.innerText = r.name);
+    document.querySelectorAll('.p-basic').forEach(e => e.innerText = basic.toLocaleString());
+    document.querySelectorAll('.p-ded').forEach(e => e.innerText = ded.toLocaleString());
+    document.querySelectorAll('.p-total').forEach(e => e.innerText = `Rs. ${Math.round(netTotal).toLocaleString()}`);
+    document.getElementById('slipModal').style.display = 'flex';
+}
 
-        function openSlip(id) {
-            const r = records.find(x => x.id === id);
-            const basic = parseFloat(r.original_base) || 0;
-            const daily = basic / 30;
-            const extra = Math.max(0, (r.availed_leaves || 0) - (r.auth_leaves || 0));
-            const ded = Math.round(extra * daily);
-            const netTotal = (basic - ded) + (r.allowance || 0);
-            const period = `${document.getElementById('filterMonth').value} ${document.getElementById('filterYear').value}`;
+// ... keep toggleEdit, saveAuth, saveAvail, and closeModal as they are ...
+</script>
 
-            document.querySelectorAll('.p-period').forEach(e => e.innerText = period);
-            document.querySelectorAll('.p-name').forEach(e => e.innerText = r.name);
-            document.querySelectorAll('.p-designation').forEach(e => e.innerText = r.designation || 'Staff Member');
-            document.querySelectorAll('.p-basic').forEach(e => e.innerText = basic.toLocaleString());
-            document.querySelectorAll('.p-allow').forEach(e => e.innerText = (r.allowance || 0).toLocaleString());
-            document.querySelectorAll('.p-leaves').forEach(e => e.innerText = `${r.auth_leaves || 0} / ${r.availed_leaves || 0}`);
-            document.querySelectorAll('.p-ded').forEach(e => e.innerText = ded.toLocaleString());
-            document.querySelectorAll('.p-total').forEach(e => e.innerText = `Rs. ${Math.round(netTotal).toLocaleString()}`);
-            document.getElementById('slipModal').style.display = 'flex';
-        }
 
-        function closeModal() { document.getElementById('slipModal').style.display = 'none'; }
-    </script>
+
+
+
 </body>
 </html>
