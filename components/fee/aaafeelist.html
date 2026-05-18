@@ -115,12 +115,6 @@ tr:hover { background: #fcfcfc; }
             <label>Enter New Amount</label>
             <input type="number" id="singleFeeValue" class="nice-select" style="width:90%">
         </div>
-        <div class="filter-group">
-    <label>Only Misc Fee Remarks</label>
-    <!-- Changed from number to text -->
-    <input type="text" id="miscFeeRemarks" placeholder="other then misc type remarks here" class="nice-select" style="width:90%">
-</div>
-
         <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px;">
             <button class="btn" style="background:#eee; color:#333;" onclick="closeSingleEdit()">Cancel</button>
             <button class="btn btn-pay" onclick="saveSingleEdit()">Save Changes</button>
@@ -136,7 +130,6 @@ tr:hover { background: #fcfcfc; }
         <div class="filter-group"><label>Exam Fee</label><input type="number" id="newExamFee" class="nice-select" style="width:93%"></div>
         <div class="filter-group"><label>Lab Fee</label><input type="number" id="newLabFee" class="nice-select" style="width:93%"></div>
         <div class="filter-group"><label>Misc Fee</label><input type="number" id="newMiscFee" class="nice-select" style="width:93%"></div>
-        <div class="filter-group"><label>Misc Fee Remarks</label><input type="text" id="miscRemarks" class="nice-select" style="width:93%"></div>
         <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:25px;">
             <button class="btn" style="background:#eee; color:#333;" onclick="closeOtherFeeModal()">Cancel</button>
             <button class="btn btn-pay" onclick="applyBulkFeeUpdate()">Update All</button>
@@ -194,27 +187,11 @@ function renderPage(page) {
             <td>${format(row.exam_fee)} <span onclick="openEdit('exam_fee', ${row.id}, ${row.exam_fee})" style="cursor:pointer; color:#3498db; margin-left:5px;">✏️</span></td>
             <td>${format(row.lab_fee)} <span onclick="openEdit('lab_fee', ${row.id}, ${row.lab_fee})" style="cursor:pointer; color:#3498db; margin-left:5px;">✏️</span></td>
             <td>${row.section || '-'}</td>
-
-<td>
-    <div style="font-weight: bold;">
-        ${format(row.misc_fee)} 
-        <span onclick="openEdit('misc_fee', ${row.id}, ${row.misc_fee}, '${row.misc_remarks || ''}')" 
-              style="cursor:pointer; color:#3498db; margin-left:5px;">✏️</span>
-    </div>
-    <div style="font-size: 11px; color: #666; font-style: italic;">
-        ${row.misc_remarks || ''}
-    </div>
-</td>
-
-<td class="txt-bold">${format(row.total_fee + row.arrears)}</td>
-
+            <td>${format(row.misc_fee)} <span onclick="openEdit('misc_fee', ${row.id}, ${row.misc_fee})" style="cursor:pointer; color:#3498db; margin-left:5px;">✏️</span></td>
+            <td class="txt-bold">${format(row.total_fee)}</td>
             <td class="txt-success">${format(row.collection)}</td>
-
-<td class="${(row.balance + row.arrears) > 0 ? 'txt-danger' : ''}">
-    ${format(row.total_fee + row.arrears - row.collection)}
-</td>
-
-            <td class="txt-danger">${format(row.arrears)}</td>
+            <td class="${row.balance > 0 ? 'txt-danger' : ''}">${format(row.balance)}</td>
+            <td class="txt-danger">${format(row.previous_arrears)}</td>
             <td>
                 <div class="btn-group">
                     <button class="btn btn-pay"  title="Collect Student Fee" onclick="collectFee(${row.id})">💰 </button>
@@ -243,16 +220,12 @@ function renderPaginationControls() {
  * @param {number} id - Record ID
  * @param {number} val - Current Value
  */
-function openEdit(field, id, val, remarks = '') {
+function openEdit(field, id, val) {
     currentEditingField = field;
     const friendlyName = field.replace('_', ' ').toUpperCase();
     
     document.getElementById('editFeeId').value = id;
     document.getElementById('singleFeeValue').value = val;
-    
-    // This line puts the remarks into the box
-    document.getElementById('miscFeeRemarks').value = remarks;
-    
     document.getElementById('editModalTitle').innerText = `Update ${friendlyName} (ID: ${id})`;
     document.getElementById('singleEditModal').style.display = 'flex';
 }
@@ -265,19 +238,18 @@ async function saveSingleEdit() {
     const id = document.getElementById('editFeeId').value;
     const value = parseFloat(document.getElementById('singleFeeValue').value) || 0;
     
-    // CHANGE THIS LINE: Pull from miscFeeRemarks, not singleFeeValue
-    const remarks = document.getElementById('miscFeeRemarks').value || "";    
-
+    // Pass the dynamic field name to the API
     const result = await window.api.updateSingleFeeField({ 
         id, 
         field: currentEditingField, 
-        value,
-        remarks // This will now send the text instead of the number
+        value 
     });
 
-    if (result.success) {
-        closeSingleEdit();
-        loadFeeData(); // Refresh the table
+    if (result.success) { 
+        closeSingleEdit(); 
+        loadFeeData(); 
+    } else { 
+        alert("Error: " + result.error); 
     }
 }
 
@@ -289,7 +261,6 @@ async function applyBulkFeeUpdate() {
         exam: parseFloat(document.getElementById('newExamFee').value) || 0,
         lab: parseFloat(document.getElementById('newLabFee').value) || 0,
         misc: parseFloat(document.getElementById('newMiscFee').value) || 0,
-        remarks: document.getElementById('miscRemarks').value || 0,
         month: document.getElementById('filterMonth').value,
         year: document.getElementById('filterYear').value,
         className: document.getElementById('filterClass').value

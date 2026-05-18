@@ -33,6 +33,7 @@ updateResultRemarks: (resultId, remarks) => ipcRenderer.invoke('update-result-re
 updateAvailedLeaves: (data) => ipcRenderer.invoke('update-availed-leaves', data),
 updateAuthLeaves: (data) => ipcRenderer.invoke('update-auth-leaves', data),
 
+getStudentByRegNo: (regno) => ipcRenderer.invoke('get-student-by-regno', regno),
 
 
     // Class Management
@@ -49,7 +50,6 @@ getDateWiseReport: (date) => ipcRenderer.invoke('get-date-wise-report', date),
     deleteStudent: (id) => ipcRenderer.invoke('deleteStudentAndRelated', id),
 
     // Fee Management & Filters
-    generateStudentFee: (id) => ipcRenderer.invoke('generate-student-fee', id),
     getFeeRecords: () => ipcRenderer.invoke('get-fee-records'),
     getFeeRecordsFilters: (filters) => ipcRenderer.invoke('get-fee-records-filters', filters),
     getFilterData: () => ipcRenderer.invoke('get-filter-data'), // Fetches unique months/years/classes
@@ -73,7 +73,11 @@ getDateWiseReport: (date) => ipcRenderer.invoke('get-date-wise-report', date),
      getDashboardStats: () => ipcRenderer.invoke('get-dashboard-stats'),
        getStudentFeeHistory: (id) => ipcRenderer.invoke('get-student-fee-history', id),
        // Add this inside the contextBridge.exposeInMainWorld('api', { ... }) block
-generateBulkFees: () => ipcRenderer.invoke('generate-bulk-fees'),
+
+    generateStudentFee: (id, month, year) => 
+    ipcRenderer.invoke('generate-student-fee', id, month, year),
+    generateBulkFees: (month, year) => 
+    ipcRenderer.invoke('generate-bulk-fees', month, year),
  generateExamSheet: (data) => ipcRenderer.invoke('generate-exam-logic', data),
     getDropdownData: () => ipcRenderer.invoke('get-dropdown-data'),
     // FIXED: added 'data' as the second argument below

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: safe-file: https://ui-avatars.com;" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Student Management</title>
+    <link rel="stylesheet" href="../../assets/css/all.min.css" />
+    <style>
+        :root { --primary: #4f46e5; --bg-gray: #f8fafc; --border: #e2e8f0; --success: #10b981; --danger: #ef4444; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-gray); margin: 0; padding: 20px; }
+        .page-container { max-width: 1400px; margin: 0 auto; }
+        .top-nav { display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px 25px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .action-card { background: white; padding: 20px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 20px; }
+        .search-container { position: relative; margin-bottom: 15px; }
+        .search-container input { width: 100%; padding: 12px 40px; border: 1px solid var(--border); border-radius: 8px; box-sizing: border-box; outline: none; }
+        .search-container i { position: absolute; left: 15px; top: 15px; color: #94a3b8; }
+        .btn-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .btn { padding: 10px 15px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 6px; transition: 0.2s; }
+        .btn:hover { opacity: 0.9; }
+        #statusToggleBtn { min-width: 240px; display: flex; justify-content: center; align-items: center; gap: 12px; font-size: 15px; }
+        .btn-active-view { background: var(--success); color: white; }
+        .btn-inactive-view { background: var(--danger); color: white; }
+        .count-badge { background: rgba(255, 255, 255, 0.3); padding: 4px 12px; border-radius: 12px; font-size: 18px; font-weight: 800; border: 1px solid rgba(255,255,255,0.4); }
+        
+        .table-container { background: white; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #f8fafc; padding: 12px; text-align: left; font-size: 11px; color: #64748b; text-transform: uppercase; border-bottom: 2px solid var(--border); }
+        td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+        .avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1px solid #ddd; }
+        .action-btn { padding: 6px 10px; border: 1px solid #e2e8f0; border-radius: 4px; background: white; cursor: pointer; margin-right: 2px; }
+        
+        .modal { display: none; position: fixed; z-index: 999; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); }
+        .modal-content { background-color: #fff; margin: 50px auto; padding: 20px; border-radius: 8px; width: 95%; max-width: 900px; position: relative; }
+        
+        @media print {
+            body * { visibility: hidden; }
+            #printReportArea, #printReportArea * { visibility: visible; }
+            #printReportArea { position: absolute; left: 0; top: 0; width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="page-container">
+    <div class="top-nav">
+        <button class="btn" onclick="window.api.changePage('components/dashboard.html')">Dashboard</button>
+        <div style="display:flex; gap:10px;">
+            <button id="statusToggleBtn" class="btn btn-active-view" onclick="toggleStatus()">
+                <span>Showing: ACTIVE</span>
+                <span id="viewCount" class="count-badge">0</span>
+            </button>
+            <button class="btn" style="background:#4f46e5; color:white;" onclick="window.api.changePage('components/student/stu_personal_info.html')">Add New Student</button>
+        </div>
+    </div>
+
+    <div class="action-card">
+        <div class="search-container">
+            <i class="fas fa-search"></i>
+            <input type="text" id="studentSearch" placeholder="Search by Registration No or Name and press Enter..." onkeyup="filterTable()" />
+        </div>
+        <div class="btn-row">
+            <button class="btn" style="background:#6366f1; color:white;" onclick="generateBulkInvoices()" title="Generate invoices for specific month">
+                <i class="fas fa-print"></i> Generate Bulk Invoices
+            </button>
+            <div style="flex-grow:1"></div>
+            <input type="date" id="reportDate" style="padding:8px; border:1px solid #ccc; border-radius:4px" />
+            <button class="btn" style="background:#4f46e5; color:white;" onclick="generateDateReport()">Date Report</button>
+            <button class="btn" style="background:#10b981; color:white;" onclick="generateStatusReport('paid')">Full Paid List</button>
+            <button class="btn" style="background:#f59e0b; color:white;" onclick="generateStatusReport('partial')">Partial Paid List</button>
+            <button class="btn" style="background:#ef4444; color:white;" onclick="generateStatusReport('unpaid')">Unpaid List</button>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>PHOTO</th><th>REG NO</th><th>NAME</th><th>FATHER NAME</th><th>CLASS</th>
+                    <th>DOB</th><th>MOBILE</th><th>WHATSAPP</th><th>FEE</th><th>ACTIONS</th>
+                </tr>
+            </thead>
+            <tbody id="studentTableBody"></tbody>
+        </table>
+    </div>
+    <div id="paginationControls" class="pagination"></div>
+</div>
+
+<!-- Month/Year Selection Modal -->
+<div id="selectionModal" class="modal">
+    <div class="modal-content" style="max-width: 400px; text-align: center; margin-top: 150px;">
+        <h3 style="color: var(--primary);">Generate Invoice</h3>
+        <p style="font-size: 14px; color: #64748b;">Select the billing month and year</p>
+        <div style="display: flex; flex-direction: column; gap: 15px; margin: 20px 0;">
+            <select id="selMonth" class="btn" style="background: white; border: 1px solid #ccc; width: 100%; height: 40px; padding-left: 10px;">
+                <option value="January">January</option><option value="February">February</option>
+                <option value="March">March</option><option value="April">April</option>
+                <option value="May">May</option><option value="June">June</option>
+                <option value="July">July</option><option value="August">August</option>
+                <option value="September">September</option><option value="October">October</option>
+                <option value="November">November</option><option value="December">December</option>
+            </select>
+            <input type="number" id="selYear" class="btn" style="background: white; border: 1px solid #ccc; width: 100%; height: 40px; padding-left: 10px;" value="2024">
+        </div>
+        <div class="btn-row" style="justify-content: center;">
+            <button class="btn btn-active-view" id="confirmProcessBtn" style="padding: 10px 30px;">Process</button>
+            <button class="btn" style="background:#64748b; color:white; padding: 10px 30px;" onclick="closeSelectionModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Report Modal -->
+<div id="reportModal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeModal()" style="position:absolute; right:20px; top:10px; cursor:pointer; font-size:24px;">&times;</span>
+        <div id="printReportArea">
+            <div id="printHeader" style="text-align:center;">
+                <h1 style="margin:0;">SCHOOL MANAGEMENT SYSTEM</h1>
+                <h2 id="dynamicPrintTitle">Report</h2>
+                <p id="printDate"></p>
+            </div>
+            <h3 id="reportTitle" style="text-align:center; color:#4f46e5;">Report View</h3>
+            <div style="display:flex; justify-content: flex-end; margin-bottom: 15px;">
+                <button id="mainPrintBtn" class="btn" style="background:#6366f1; color:white;" onclick="printFullReport()">SAVE / PRINT</button>
+            </div>
+            <table style="width:100%; border-collapse:collapse;">
+                <thead>
+                    <tr style="background:#f8fafc;">
+                        <th>Reg No</th><th>Name</th><th>Class</th><th>Total Fee</th><th>Paid</th><th>Balance</th>
+                    </tr>
+                </thead>
+                <tbody id="modalTableBody"></tbody>
+            </table>
+        </div>
+        <div id="modalPagination" class="report-pagination"></div>
+    </div>
+</div>
+
+<script>
+    let allStudents = [];
+    let filteredStudents = [];
+    let currentStatusView = 'active';
+    let currentPage = 1;
+    const recordsPerPage = 50;
+    let pendingFeeId = null;
+
+    // --- INITIAL LOAD ---
+    async function loadStudents() {
+        allStudents = await window.api.getStudents();
+        applyMainFilters();
+    }
+
+    function toggleStatus() {
+        currentStatusView = (currentStatusView === 'active') ? 'inactive' : 'active';
+        applyMainFilters();
+    }
+
+    function applyMainFilters() {
+        const term = document.getElementById('studentSearch').value.toLowerCase().trim();
+        const badge = document.getElementById('viewCount');
+        const btn = document.getElementById('statusToggleBtn');
+
+        filteredStudents = allStudents.filter(s => {
+            const matchesStatus = s.status.toLowerCase() === currentStatusView;
+            const matchesSearch = !term || s.registration_no.toString().includes(term) || s.student_name.toLowerCase().includes(term);
+            return matchesStatus && matchesSearch;
+        });
+
+        badge.innerText = allStudents.filter(s => s.status.toLowerCase() === currentStatusView).length;
+        btn.querySelector('span').innerText = `Showing: ${currentStatusView.toUpperCase()}`;
+        btn.className = `btn btn-${currentStatusView}-view`;
+        renderTable();
+    }
+
+    function filterTable() { applyMainFilters(); }
+
+    async function renderTable() {
+        const tbody = document.getElementById('studentTableBody');
+        tbody.innerHTML = '';
+        const start = (currentPage - 1) * recordsPerPage;
+        const items = filteredStudents.slice(start, start + recordsPerPage);
+
+        for (const s of items) {
+            const imgSrc = s.picture_path ? await window.api.getImageUrl(s.picture_path) : `https://ui-avatars.com{encodeURIComponent(s.student_name)}&background=random`;
+            tbody.innerHTML += `<tr>
+                <td><img src="${imgSrc}" class="avatar" /></td>
+                <td><strong>${s.registration_no}</strong></td>
+                <td>${s.student_name}</td>
+                <td>${s.father_name}</td>
+                <td>${s.current_class}</td>
+                <td>${new Date(s.dob).toLocaleDateString()}</td>
+                <td>${s.mobile}</td>
+                <td>${s.whatsapp}</td>
+                <td>${s.monthly_fee}</td>
+                <td>
+                    <button class="action-btn" onclick="viewHistory(${s.id})">👁️</button>
+                    <button class="action-btn" onclick="editStudent(${s.id})">✏️</button>
+                    <button class="action-btn" onclick="generateFee(${s.id})" title="Generate Invoice">💰</button>
+                    <button class="action-btn" style="color:red" onclick="deleteStudent(${s.id})">🗑️</button>
+                </td>
+            </tr>`;
+        }
+    }
+
+    // --- FEE MODAL LOGIC ---
+    function closeSelectionModal() { document.getElementById('selectionModal').style.display = "none"; }
+
+    function generateFee(id) {
+        pendingFeeId = id;
+        document.getElementById('selYear').value = new Date().getFullYear();
+        document.getElementById('selectionModal').style.display = "block";
+    }
+
+    function generateBulkInvoices() {
+        pendingFeeId = 'BULK';
+        document.getElementById('selYear').value = new Date().getFullYear();
+        document.getElementById('selectionModal').style.display = "block";
+    }
+
+    document.getElementById('confirmProcessBtn').onclick = async () => {
+        const month = document.getElementById('selMonth').value;
+        const year = document.getElementById('selYear').value;
+        closeSelectionModal();
+
+        try {
+            if (pendingFeeId === 'BULK') {
+                const res = await window.api.generateBulkFees(month, year);
+                alert(res.message || `Success! Generated ${res.count} invoices for ${month}.`);
+            } else {
+                await window.api.generateStudentFee(pendingFeeId, month, year);
+                alert(`Invoice generated for ${month} ${year}`);
+            }
+            loadStudents(); 
+        } catch (err) { alert(err.message); }
+    };
+
+    // --- OTHER ACTIONS ---
+    function editStudent(id) { window.api.changePage(`components/student/stu_personal_info.html?id=${id}`); }
+    function viewHistory(id) { window.api.changePage(`components/fee/fee_detail_by_id.html?id=${id}`); }
+    async function deleteStudent(id) { if (confirm('Delete student?')) { await window.api.deleteStudent(id); loadStudents(); } }
+
+    loadStudents();
+</script>
+</body>
+</html>

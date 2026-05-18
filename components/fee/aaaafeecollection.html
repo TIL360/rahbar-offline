@@ -63,7 +63,7 @@
 
 <script>
     const feeId = localStorage.getItem('collectFeeId');
-    let totalOutstanding = 0; // Renamed for clarity
+    let currentBalance = 0;
 
     document.addEventListener('DOMContentLoaded', loadData);
 
@@ -77,47 +77,46 @@
         document.getElementById('sFather').innerText = record.father_name;
         document.getElementById('invoicePeriod').innerText = `${record.invoice_month} ${record.invoice_year}`;
         
-        // --- UPDATED MATH ---
-        // Sum current fees + past arrears
-        const grandTotal = record.total_fee + record.arrears;
-        // Remaining is Grand Total minus what was already paid for THIS invoice
-        const remaining = grandTotal - record.collection;
-
-        document.getElementById('fTotal').innerText = `Rs. ${grandTotal.toLocaleString()}`;
+        document.getElementById('fTotal').innerText = `Rs. ${record.total_fee.toLocaleString()}`;
         document.getElementById('fCollected').innerText = `Rs. ${record.collection.toLocaleString()}`;
-        document.getElementById('fBalance').innerText = `Rs. ${remaining.toLocaleString()}`;
+        document.getElementById('fBalance').innerText = `Rs. ${record.balance.toLocaleString()}`;
         
-        totalOutstanding = remaining;
-        document.getElementById('payInput').value = remaining; // Default to full amount
+        currentBalance = record.balance;
+        document.getElementById('payInput').value = record.balance; // Default to full remaining amount
     }
 
     async function submitFee() {
         const amount = parseFloat(document.getElementById('payInput').value);
+        if(!amount || amount <= 0) return alert("Please enter a valid amount");
         
-        if(!amount || amount <= 0) {
-            return alert("Please enter a valid amount");
-        }
-
-        // Logic check: Allow overpayment or partial payment
-        const confirmMsg = amount >= totalOutstanding 
-            ? `Confirm full payment of Rs. ${amount}?` 
-            : `Confirm partial payment of Rs. ${amount}? Remaining will be Rs. ${totalOutstanding - amount}`;
-
-        if(confirm(confirmMsg)) {
-            try {
-                // Ensure this matches your IPC handler (update-fee-collection)
-                await window.api.updateFeeCollection({ id: feeId, amount: amount });
-                
-                alert("Payment successfully recorded!");
-                window.api.changePage('components/fee/feelist.html');
-            } catch (err) {
-                console.error(err);
-                alert("Failed to save payment.");
-            }
+        if(confirm(`Confirm collection of Rs. ${amount}?`)) {
+            await window.api.updateFeeSubmit(feeId, amount);
+            alert("Payment successfully recorded!");
+            window.api.changePage('components/fee/feelist.html');
         }
     }
-</script>
 
+    //submit fee logic
+    async function submitFee() {
+    const amount = parseFloat(document.getElementById('payInput').value);
+    
+    if(!amount || amount <= 0) {
+        return alert("Please enter a valid amount");
+    }
+
+    try {
+        // Send as an object to match the main.js handler above
+        await window.api.updateFeeCollection({ id: feeId, amount: amount });
+        
+        alert("Payment successfully recorded!");
+        window.api.changePage('components/fee/feelist.html');
+    } catch (err) {
+        console.error(err);
+        alert("Failed to save payment.");
+    }
+}
+
+</script>
 
 </body>
 </html>

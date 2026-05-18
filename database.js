@@ -38,17 +38,23 @@ const initializeDB = () => {
         )`);
 
         // 4. Fee Table
-        db.exec(`CREATE TABLE IF NOT EXISTS fee_tbl (
-            id INTEGER PRIMARY KEY AUTOINCREMENT, student_id INTEGER, 
-            registration_no TEXT, current_class TEXT, 
-            monthly_fee REAL DEFAULT 0, adm_fee REAL DEFAULT 0, exam_fee REAL DEFAULT 0, lab_fee REAL DEFAULT 0, 
-            security REAL DEFAULT 0, misc_fee REAL DEFAULT 0,
-            total_fee REAL GENERATED ALWAYS AS (monthly_fee + adm_fee + exam_fee + lab_fee + security + misc_fee) VIRTUAL,
-            collection REAL DEFAULT 0,
-            balance REAL GENERATED ALWAYS AS ((monthly_fee + adm_fee + exam_fee + lab_fee + security + misc_fee) - collection) VIRTUAL,
-            invoice_month TEXT, invoice_year TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(registration_no, invoice_month, invoice_year) 
-        )`);
+     db.exec(`CREATE TABLE IF NOT EXISTS fee_tbl (
+               id INTEGER PRIMARY KEY AUTOINCREMENT, student_id INTEGER, 
+               registration_no TEXT, current_class TEXT, 
+               monthly_fee REAL DEFAULT 0, 
+               adm_fee REAL DEFAULT 0, 
+               exam_fee REAL DEFAULT 0, 
+               lab_fee REAL DEFAULT 0, 
+               security REAL DEFAULT 0, 
+               misc_fee REAL DEFAULT 0,
+               misc_remarks TEXT,
+               total_fee REAL GENERATED ALWAYS AS (monthly_fee + adm_fee + exam_fee + lab_fee + security + misc_fee ) VIRTUAL,
+               collection REAL DEFAULT 0,
+               balance REAL GENERATED ALWAYS AS (total_fee - collection) VIRTUAL,
+               arrears REAL DEFAULT 0,
+               invoice_month TEXT, invoice_year TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+               UNIQUE(registration_no, invoice_month, invoice_year) 
+           )`);
 
         // 5. Exams & Results (Fixed better-sqlite3 implementation)
        db.exec(`CREATE TABLE IF NOT EXISTS exams (
@@ -196,7 +202,7 @@ const updateClass = (id, name) => db.prepare('UPDATE classes SET class_name = ? 
 const addStudent = (s) => {
     const sql = `INSERT INTO students (registration_no, roll_no, student_name, student_name_urdu, father_name, dob, cnic_bform, picture_path, admission_class, current_class, section, admission_date, status, mobile, whatsapp, address, monthly_fee, character_remarks) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
     return db.prepare(sql).run(s.regNo, s.rollNo, s.name, s.nameUrdu, s.fatherName, s.dob, s.cnic, s.pic, s.admClass, s.studyClass, s.section, s.admDate, s.status, s.mobile, s.whatsapp, s.address, s.monthlyFee, s.character);
-};
+}; 
 const getStudents = () => db.prepare('SELECT * FROM students ORDER BY id DESC').all();
 const getStudentById = (id) => db.prepare('SELECT * FROM students WHERE id = ?').get(id);
 const updateStudent = (s) => {
@@ -214,28 +220,105 @@ function deleteResultsByStudent(studentId) {
   return db.prepare('DELETE FROM result WHERE student_id = ?').run(studentId);
 }
 
-const generateFee = (studentId) => {
-    const student = db.prepare('SELECT registration_no, current_class, monthly_fee FROM students WHERE id = ?').get(studentId);
-    const now = new Date();
-    const month = now.toLocaleString('default', { month: 'long' });
-    const year = now.getFullYear().toString();
+const generateFee = (studentId, month, year) => {
+    // 1. Get student info
+    const student = db.prepare(`
+        SELECT registration_no, current_class, monthly_fee 
+        FROM students WHERE id = ?
+    `).get(studentId);
+
+    // 2. Calculate Arrears: Sum of (total_fee - collection) + any existing arrears 
+    // from all previous months.
+    const arrearsData = db.prepare(`
+        SELECT SUM(balance) as total_arrears 
+        FROM fee_tbl 
+        WHERE student_id = ?
+    `).get(studentId);
+
+    const arrears = arrearsData.total_arrears || 0;
+
     try {
-        return db.prepare(`INSERT INTO fee_tbl (student_id, registration_no, current_class, monthly_fee, invoice_month, invoice_year) VALUES (?, ?, ?, ?, ?, ?)`).run(studentId, student.registration_no, student.current_class, student.monthly_fee, month, year);
-    } catch (err) { if (err.message.includes('UNIQUE constraint failed')) throw new Error(`Fee for ${month} ${year} already generated.`); throw err; }
+        // 3. Insert record
+        // Note: total_fee and balance will be calculated automatically by the DB
+        return db.prepare(`
+            INSERT INTO fee_tbl (
+                student_id, registration_no, current_class, 
+                monthly_fee, arrears, invoice_month, invoice_year, collection
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 0)
+        `).run(
+            studentId, 
+            student.registration_no, 
+            student.current_class, 
+            student.monthly_fee, 
+            arrears, 
+            month, 
+            year
+        );
+    } catch (err) { 
+        if (err.message.includes('UNIQUE constraint failed')) {
+            throw new Error(`Fee for ${month} ${year} already generated.`); 
+        }
+        throw err; 
+    }
 };
 
-const generateBulkFees = () => {
-    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-    const now = new Date();
-    const month = months[now.getMonth()];
-    const year = now.getFullYear().toString();
-    const missingStudents = db.prepare(`SELECT id, registration_no, current_class, monthly_fee FROM students WHERE LOWER(status) = 'active' AND id NOT IN (SELECT student_id FROM fee_tbl WHERE LOWER(invoice_month) = LOWER(?) AND invoice_year = ?)`).all(month, year);
-    if (missingStudents.length === 0) return { success: false, message: `Invoices for ${month} ${year} already generated.` };
-    const insertStmt = db.prepare(`INSERT INTO fee_tbl (student_id, registration_no, current_class, monthly_fee, invoice_month, invoice_year, collection) VALUES (?, ?, ?, ?, ?, ?, 0)`);
-    const transaction = db.transaction((students) => { for (const s of students) insertStmt.run(s.id, s.registration_no, s.current_class, s.monthly_fee, month, year); });
-    transaction(missingStudents);
-    const allActive = db.prepare("SELECT id FROM students WHERE LOWER(status) = 'active'").all();
-    return { success: true, count: missingStudents.length, ids: allActive.map(s => s.id) };
+
+const generateBulkFees = (month, year) => {
+    // 1. Fetch active students without an invoice for this month
+    // We SUM(balance) to get the total debt from all previous records
+    const missingStudents = db.prepare(`
+        SELECT 
+            s.id, 
+            s.registration_no, 
+            s.current_class, 
+            s.monthly_fee,
+            COALESCE((
+                SELECT SUM(balance) 
+                FROM fee_tbl 
+                WHERE student_id = s.id
+            ), 0) AS total_arrears
+        FROM students s
+        WHERE LOWER(s.status) = 'active' 
+        AND s.id NOT IN (
+            SELECT student_id FROM fee_tbl 
+            WHERE LOWER(invoice_month) = LOWER(?) AND invoice_year = ?
+        )
+    `).all(month, year);
+
+    if (missingStudents.length === 0) {
+        return { success: false, message: `Invoices for ${month} ${year} already generated.` };
+    }
+
+    // 2. Prepare Insert statement
+    const insertStmt = db.prepare(`
+        INSERT INTO fee_tbl (
+            student_id, registration_no, current_class, 
+            monthly_fee, arrears, invoice_month, invoice_year, collection
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 0)
+    `);
+
+    // 3. Execute as a transaction for speed and safety
+    const transaction = db.transaction((students) => {
+        for (const s of students) {
+            insertStmt.run(
+                s.id, 
+                s.registration_no, 
+                s.current_class, 
+                s.monthly_fee, 
+                s.total_arrears, // Correctly pulls the sum of past balances
+                month, 
+                year
+            );
+        }
+    });
+
+    try {
+        transaction(missingStudents);
+        return { success: true, count: missingStudents.length };
+    } catch (err) {
+        console.error("Bulk Fee Error:", err);
+        return { success: false, error: err.message };
+    }
 };
 
 const getFeeRecords = () => db.prepare(`SELECT f.*, s.student_name, s.father_name FROM fee_tbl f JOIN students s ON f.student_id = s.id ORDER BY f.id DESC`).all();
@@ -423,41 +506,80 @@ const getFeeReportByStatus = (statusType) => {
     const year = now.getFullYear().toString();
 
     let statusFilter = "";
-    if (statusType === 'paid') statusFilter = "AND f.balance <= 0";
-    else if (statusType === 'unpaid') statusFilter = "AND f.collection = 0";
-    else if (statusType === 'partial') statusFilter = "AND f.collection > 0 AND f.balance > 0";
+    
+    /**
+     * Logic Fix:
+     * We calculate the 'net_debt' inside the filter.
+     * net_debt = (Current Month Total) + (Sum of all previous balances)
+     */
+    if (statusType === 'paid') {
+        // Paid: Collection covers everything (Current + Arrears)
+        statusFilter = "AND f.collection >= (f.total_fee + arrears_sub.prev_bal)";
+    } 
+    else if (statusType === 'unpaid') {
+        // Unpaid: Exactly zero collected
+        statusFilter = "AND f.collection = 0";
+    } 
+    else if (statusType === 'partial') {
+        // Partial: Something paid, but less than the total debt
+        statusFilter = "AND f.collection > 0 AND f.collection < (f.total_fee + arrears_sub.prev_bal)";
+    }
 
     const sql = `
         SELECT 
-            f.registration_no, s.student_name, f.current_class, s.section,
-            f.monthly_fee, f.collection, f.balance, f.created_at as paid_on,
-            (SELECT SUM(balance) FROM fee_tbl WHERE registration_no = f.registration_no AND id < f.id) as arrears
+            f.*, 
+            s.student_name, 
+            s.father_name, 
+            s.section, 
+            s.mobile,
+            arrears_sub.prev_bal as arrears
         FROM fee_tbl f
         JOIN students s ON f.student_id = s.id
-        WHERE f.invoice_month = ? AND f.invoice_year = ? ${statusFilter}
+        -- We use a CROSS JOIN/Subquery to calculate arrears for the filter to work
+        JOIN (
+            SELECT id, 
+            (SELECT COALESCE(SUM(balance), 0) FROM fee_tbl WHERE student_id = f2.student_id AND id < f2.id) as prev_bal
+            FROM fee_tbl f2
+        ) AS arrears_sub ON f.id = arrears_sub.id
+        WHERE f.invoice_month = ? 
+          AND f.invoice_year = ? 
+          ${statusFilter}
         ORDER BY f.current_class ASC, s.section ASC, f.registration_no ASC
     `;
-    
+
     return db.prepare(sql).all(month, year);
 };
+
 
 // Update module.exports to include getFeeReportByStatus
 // Add/Update in database.js
 // Add to database.js
 // Update this in database.js
+// Update this in database.js
 const getDateWiseReport = (selectedDate) => {
+    // selectedDate is already "YYYY-MM-DD" from the HTML input
     const sql = `
         SELECT 
-            f.registration_no, s.student_name, f.current_class, s.section,
-            f.monthly_fee, f.collection, f.balance, f.created_at as paid_on,
-            (SELECT SUM(balance) FROM fee_tbl WHERE registration_no = f.registration_no AND id < f.id) as arrears
+            f.*, 
+            s.student_name, 
+            s.father_name, 
+            s.section, 
+            s.mobile,
+            f.created_at as paid_on,
+            (
+                SELECT COALESCE(SUM(balance), 0) 
+                FROM fee_tbl 
+                WHERE student_id = f.student_id AND id < f.id
+            ) as arrears
         FROM fee_tbl f
         JOIN students s ON f.student_id = s.id
-        WHERE DATE(f.created_at) = ? 
-        AND f.collection > 0  -- This line filters out students with 0 paid amount
+        WHERE f.collection_date LIKE ? 
+        AND f.collection > 0
         ORDER BY f.current_class ASC, s.section ASC, f.registration_no ASC
     `;
-    return db.prepare(sql).all(selectedDate);
+    
+    // Use the raw selectedDate with a wildcard for the time portion
+    return db.prepare(sql).all(`${selectedDate}%`);
 };
 
 
@@ -536,6 +658,11 @@ const deleteDateSheetPaper = (id) => {
     return db.prepare(sql).run(id);
 };
 
+function getStudentByReg(regNo) {
+    console.log("DB function received regNo:", regNo); // See if this is undefined
+    const student = db.prepare('SELECT * FROM students WHERE registration_no = ?').get(regNo);
+    return student;
+}
 
 module.exports = {
     db, checkUser, addUser, getAllUsers, addClass, getClasses, deleteClass, updateClass, 
@@ -546,5 +673,5 @@ module.exports = {
     getDashboardStats, getUniqueInvoiceMonths, getUniqueInvoiceYears, getClassesFee,
     getActiveClasses, initiateExamForClasses, getStudentFeeHistory, updateAvailedLeaves,
     getFeeReportByStatus, getDateWiseReport, deleteFeeRecordsByStudent, deleteResultsByStudent,
-    addDateSheetPaper, getDateSheetRecords, updateDateSheetPaper, deleteDateSheetPaper
+    addDateSheetPaper, getDateSheetRecords, updateDateSheetPaper, deleteDateSheetPaper, getStudentByReg
 };

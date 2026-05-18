@@ -1,54 +1,88 @@
-
 // main.js
 process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
-const { app, BrowserWindow, globalShortcut, ipcMain, dialog, protocol, shell, Menu, session } 
-= require('electron');
+const { app, BrowserWindow, globalShortcut, ipcMain, dialog, protocol, shell, Menu, session } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const dbLogic = require('./database.js'); 
+const dbLogic = require('./database.js');
 
-// At the very top of main.js, add this to allow the custom protocol
-protocol.registerSchemesAsPrivileged([
-  { scheme: 'safe-file', privileges: { standard: true, secure: true, supportFetchAPI: true } }
-]);
-// 1. Setup the path (Same as your school.db location)
+// 1. PATH SETUP
 const userDataPath = app.getPath('userData');
 const imagesDir = path.join(userDataPath, 'images');
+const configPath = path.join(userDataPath, 'config.json'); // Path for hidden time-tracking file
 
-// 2. Create the images folder if it doesn't exist
+// 2. INITIALIZE DIRECTORIES
 if (!fs.existsSync(imagesDir)) {
     fs.mkdirSync(imagesDir, { recursive: true });
 }
 
-// 1. EXPIRY CONFIGURATION
-const EXPIRY_DATE = new Date(2027, 4, 30); // May 31, 2026
+// 3. PRIVILEGED PROTOCOLS
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'safe-file', privileges: { standard: true, secure: true, supportFetchAPI: true } }
+]);
 
-// 2. IMPORT FROM DATABASE.JS
+// 4. EXPIRY CONFIGURATION
+// Note: Months are 0-indexed in JS. 4 = May, 5 = June.
+const EXPIRY_DATE = new Date(2026, 4, 31); // May 31, 2026
+
+// 5. DATABASE IMPORTS
 const { 
     db, 
     checkUser, 
+    changeUserPassword,
     addUser,
-    deleteStudent,deleteFeeRecordsByStudent, deleteResultsByStudent
+    deleteStudent,
+    deleteFeeRecordsByStudent, 
+    deleteResultsByStudent, getStudentByReg
 } = require('./database.js');
 
 let win;
+
 Menu.setApplicationMenu(null); 
 
 function createWindow() {
-    // EXPIRY CHECK
+    // --- OFFLINE PROTECTION & EXPIRY LOGIC (OPTION 2) ---
     const today = new Date();
-    if (today > EXPIRY_DATE) {
+    let lastRunDate;
+
+    // Load or create the last known date
+    if (fs.existsSync(configPath)) {
+        try {
+            const config = JSON.parse(fs.readFileSync(configPath));
+            lastRunDate = new Date(config.lastRun);
+        } catch (e) {
+            lastRunDate = today;
+        }
+    } else {
+        lastRunDate = today;
+    }
+
+    // Check A: Clock Tampering (System time is earlier than the last recorded run)
+    if (today < lastRunDate) {
         dialog.showErrorBox(
-            "System Lock", 
-            "Your license has expired. Please contact the administrator to continue using this software. Contact: 0311-5101738, E-mail: techinfolab360@gmail.com "
+            "Time Tamper Detected", 
+            "Your system clock is incorrect or has been set back. Please correct your time settings to continue."
         );
         app.quit();
         return;
     }
 
+    // Check B: License Expiry
+    if (today > EXPIRY_DATE) {
+        dialog.showErrorBox(
+            "System Lock", 
+            "Your license has expired. Please contact the administrator to continue using this software.\nContact: 0311-5101738\nE-mail: techinfolab360@gmail.com"
+        );
+        app.quit();
+        return;
+    }
+
+    // Update the "Last Run" date to today
+    fs.writeFileSync(configPath, JSON.stringify({ lastRun: today.toISOString() }));
+
+    // --- BROWSER WINDOW SETUP ---
     win = new BrowserWindow({
-        width: 1920,//1100
-        height: 1080,//850
+        width: 1920,
+        height: 1080,
         titleBarStyle: "default",
         backgroundColor: "#fdf0d5",
         webPreferences: {
@@ -59,13 +93,12 @@ function createWindow() {
         }
     });
 
-      // ADD THIS BLOCK BELOW TO FIX THE CHILD WINDOW ERROR
     win.webContents.setWindowOpenHandler(({ url }) => {
         return {
             action: 'allow',
             overrideBrowserWindowOptions: {
                 webPreferences: {
-                    preload: path.join(__dirname, 'preload.js'), // This gives window.api to the invoice
+                    preload: path.join(__dirname, 'preload.js'),
                     contextIsolation: true,
                     nodeIntegration: false,
                     sandbox: false
@@ -73,25 +106,6 @@ function createWindow() {
             }
         };
     });
-    
-
-    // --- CSP FIX: ALLOW SAFE-FILE PROTOCOL ---
-   // Inside createWindow() function
-win.webContents.session.webRequest.onHeadersReceived((details, callback) => {
-    callback({
-        responseHeaders: {
-            ...details.responseHeaders,
-           'Content-Security-Policy': [
-    "default-src 'self'; " +
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
-    "style-src 'self' 'unsafe-inline'; " +
-    // MUST include https://ui-avatars.com here
-    "img-src 'self' data: safe-file: https://ui-avatars.com;" 
-]
-        }
-    });
-});
-
 
     win.loadFile(path.join(__dirname, 'components', 'login.html'));
     win.on('closed', () => { win = null; });
@@ -398,19 +412,22 @@ ipcMain.handle('update-result-remarks', async (event, resultId, remarks) => {
 
 
 // Fee Management
-ipcMain.handle('generate-bulk-fees', async () => {
+ipcMain.handle('generate-bulk-fees', async (event, month, year) => {
     try {
-        return dbLogic.generateBulkFees();
+        // Now passing month and year to the database logic
+        return dbLogic.generateBulkFees(month, year);
     } catch (error) {
-        console.error("Bulk Generation Error:", error);
-        throw error;
+        console.error("IPC Error (generate-bulk-fees):", error);
+        return { success: false, error: error.message };
     }
 });
 
-ipcMain.handle('generate-student-fee', async (event, studentId) => {
+ipcMain.handle('generate-student-fee', async (event, studentId, month, year) => {
     try {
-        return dbLogic.generateFee(studentId);
+        // Now passing month and year to the database logic
+        return dbLogic.generateFee(studentId, month, year);
     } catch (error) {
+        console.error("IPC Error (generate-student-fee):", error);
         throw error; 
     }
 });
@@ -802,6 +819,16 @@ ipcMain.handle('delete-datesheet', async (event, id) => {
     }
 });
 
+//certificate
+ipcMain.handle('get-student-by-regno', async (event, regNo) => {
+    try {
+        // Simply return the result from the synchronous db function
+        return dbLogic.getStudentByReg(regNo);
+    } catch (err) {
+        console.error("Error fetching student for SLC:", err);
+        return null;
+    }
+});
 
 
 // --- LIFECYCLE ---
